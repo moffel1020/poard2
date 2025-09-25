@@ -1,0 +1,26 @@
+---
+Language: Cpp
+AccessModifierOffset: -4
+BreakBeforeBraces: Attach
+ColumnLimit: 120
+IndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+UseTab: Never
+LineEnding:      DeriveLF
+InsertNewlineAtEOF: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+FixNamespaceComments: true
+UseCRLF: false
+SpacesInParens:  Never
+AlignAfterOpenBracket: DontAlign
+...
