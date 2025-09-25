@@ -23,4 +23,5 @@ FixNamespaceComments: true
 UseCRLF: false
 SpacesInParens:  Never
 AlignAfterOpenBracket: DontAlign
+PackConstructorInitializers: NextLine
 ...
