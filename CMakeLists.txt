@@ -13,6 +13,7 @@ set(DEPS_DIR ${CMAKE_SOURCE_DIR}/deps)
 
 add_executable(poard2
     ${SRC_DIR}/main.cpp
+    ${SRC_DIR}/window.cpp
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/camera.cpp
     ${DEPS_DIR}/stb/stb_image.cpp

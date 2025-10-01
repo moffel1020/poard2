@@ -14,8 +14,9 @@ public:
         Right,
     };
 
-    Camera() = delete;
     Camera(float aspect, float fov = 70.0f);
+
+    Camera() = delete;
     Camera(const Camera& other) = default;
     Camera& operator=(const Camera& other) = default;
     Camera(Camera&& other) = default;

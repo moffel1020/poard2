@@ -1,9 +1,13 @@
 #include "camera.h"
+#include "input.h"
 #include "shader.h"
 #include "stb_image.h"
+#include "window.h"
+
 #include <GLFW/glfw3.h>
 #include <array>
 #include <fstream>
+#include <functional>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,19 +21,13 @@ int main() {
         return -1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "poard2", NULL, NULL);
-    if (window == nullptr) {
-        std::cout << "failed to create glfw window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    constexpr float initScreenWidth = 800.0f;
+    constexpr float initScreenHeight = 600.0f;
+    Window window(initScreenWidth, initScreenHeight, "poard2");
 
     if (!gladLoadGL(static_cast<GLADloadfunc>(glfwGetProcAddress))) {
         glfwTerminate();
@@ -37,11 +35,9 @@ int main() {
         return -1;
     }
 
-    constexpr float initScreenWidth = 800.0f;
-    constexpr float initScreenHeight = 600.0f;
     glViewport(0, 0, initScreenWidth, initScreenHeight);
     glfwSetFramebufferSizeCallback(
-        window, [](GLFWwindow* window, int width, int height) { glViewport(0, 0, width, height); });
+        window.getHandle(), [](GLFWwindow* window, int width, int height) { glViewport(0, 0, width, height); });
 
     const auto readFile = [](const char* path) {
         std::ifstream file(path);
@@ -142,9 +138,7 @@ int main() {
         static double lastYPos = 0;
         static bool firstMouse = true;
 
-        double xPos;
-        double yPos;
-        glfwGetCursorPos(window, &xPos, &yPos);
+        const auto [xPos, yPos] = Input::getMousePos(window.getHandle());
         if (firstMouse) {
             lastXPos = xPos;
             lastYPos = yPos;
@@ -163,29 +157,31 @@ int main() {
     const auto processKeyboard = [&window, &cam](double dt) {
         const float moveSpeed = 2.0f * dt;
         using Dir = Camera::Dir;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        const auto keyPressed = std::bind(Input::isKeyPressed, window.getHandle(), std::placeholders::_1);
+
+        if (keyPressed(GLFW_KEY_W)) {
             cam.move<Dir::Front>(moveSpeed);
         }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        if (keyPressed(GLFW_KEY_A)) {
             cam.move<Dir::Left>(moveSpeed);
         }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        if (keyPressed(GLFW_KEY_S)) {
             cam.move<Dir::Back>(moveSpeed);
         }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        if (keyPressed(GLFW_KEY_D)) {
             cam.move<Dir::Right>(moveSpeed);
         }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        if (keyPressed(GLFW_KEY_SPACE)) {
             cam.move<Dir::Up>(moveSpeed);
         }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        if (keyPressed(GLFW_KEY_LEFT_SHIFT)) {
             cam.move<Dir::Down>(moveSpeed);
         }
     };
 
     double lastTime = 0;
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    while (!glfwWindowShouldClose(window)) {
+    glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    while (!glfwWindowShouldClose(window.getHandle())) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -214,7 +210,7 @@ int main() {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window.getHandle());
         glfwPollEvents();
     }
 
