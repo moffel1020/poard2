@@ -28,11 +28,11 @@ public:
     void setAspect(float width, float height) { proj = glm::perspective(fov, width / height, zNear, zFar); }
     const glm::mat4& getView() const { return view; }
     const glm::mat4& getProj() const { return proj; }
-    const float getYaw() { return yaw; };
-    const float getPitch() { return pitch; };
+    float getYaw() { return yaw; };
+    float getPitch() { return pitch; };
 
     // clang-format off
-    template<Camera::Dir> void move(float distance) { static_assert(false); }
+    template<Camera::Dir> void move(float) { static_assert(false); }
     template<> inline void move<Dir::Front>(float distance) { position += distance * direction; }
     template<> inline void move<Dir::Back>(float distance)  { position -= distance * direction; }
     template<> inline void move<Dir::Left>(float distance)  { position -= distance * right; }

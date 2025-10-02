@@ -23,6 +23,18 @@ target_include_directories(poard2 PRIVATE
 
 target_compile_definitions(poard2 PRIVATE GLFW_INCLUDE_NONE)
 
+function(add_warnings target)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_options(${target} PRIVATE /W3)
+    endif()
+endfunction()
+
+add_warnings(poard2)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(cmake/deps.cmake)
 

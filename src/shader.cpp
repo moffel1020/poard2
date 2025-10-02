@@ -19,7 +19,7 @@ Shader::Shader(const std::string& vertSource, const std::string fragSource) {
     if (!succes) {
         std::array<char, INFO_SIZE> linkInfo{};
         glGetProgramInfoLog(id, linkInfo.size(), nullptr, linkInfo.data());
-        std::cout << "ERROR: vertex and fragment shaders failed to link\n{}" << linkInfo.data() << std::endl;
+        std::cout << "ERROR: vertex and fragment shaders failed to link\n" << linkInfo.data() << std::endl;
     }
 
     glValidateProgram(id);
@@ -38,7 +38,7 @@ uint32_t Shader::compileShader(GLenum type, const std::string& source) {
     if (!success) {
         std::array<char, INFO_SIZE> compileInfo{};
         glGetShaderInfoLog(id, compileInfo.size(), nullptr, compileInfo.data());
-        std::cout << "ERROR: shader compilation of type {} failed\n{}" << type << compileInfo.data() << std::endl;
+        std::cout << "ERROR: shader compilation of type " << type << " failed\n"  << compileInfo.data() << std::endl;
     }
 
     return id;

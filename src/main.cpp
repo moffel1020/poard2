@@ -15,29 +15,75 @@
 #include <iostream>
 #include <sstream>
 
+static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
+    const void* userParam) {
+    (void)length;
+    (void)userParam;
+
+    // clang-format off
+    const auto srcStr = [source]() {
+        switch (source) {
+        case GL_DEBUG_SOURCE_API: return "API";
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "WINDOW SYSTEM";
+        case GL_DEBUG_SOURCE_SHADER_COMPILER: return "SHADER COMPILER";
+        case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
+        case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
+        case GL_DEBUG_SOURCE_OTHER: return "OTHER";
+        default: return "";
+        }
+    }();
+
+    const auto typeStr = [type]() {
+        switch (type) {
+        case GL_DEBUG_TYPE_ERROR: return "ERROR";
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED_BEHAVIOR";
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "UNDEFINED_BEHAVIOR";
+        case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
+        case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
+        case GL_DEBUG_TYPE_MARKER: return "MARKER";
+        case GL_DEBUG_TYPE_OTHER:  return "OTHER";
+        default:  return "";
+        }
+    }();
+
+    const auto severityStr = [severity]() {
+        switch (severity) {
+        case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFICATION";
+        case GL_DEBUG_SEVERITY_LOW: return "LOW";
+        case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
+        case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
+        default: return "";
+        }
+    }();
+    // clang-format on
+    std::cout << srcStr << ", " << typeStr << ", " << severityStr << ", " << id << ": " << message << '\n';
+}
+
 int main() {
     if (!glfwInit()) {
-        std::cout << "failed to init glfw" << std::endl;
-        return -1;
+        throw std::runtime_error("failed to initialize glfw");
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
     constexpr float initScreenWidth = 800.0f;
     constexpr float initScreenHeight = 600.0f;
     Window window(initScreenWidth, initScreenHeight, "poard2");
 
     if (!gladLoadGL(static_cast<GLADloadfunc>(glfwGetProcAddress))) {
-        glfwTerminate();
-        std::cout << "failed to init glad" << std::endl;
-        return -1;
+        throw std::runtime_error("failed to initialize glad");
     }
 
     glViewport(0, 0, initScreenWidth, initScreenHeight);
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(&debugCallback, nullptr);
+
     glfwSetFramebufferSizeCallback(
-        window.getHandle(), [](GLFWwindow* window, int width, int height) { glViewport(0, 0, width, height); });
+        window.getHandle(), [](GLFWwindow*, int width, int height) { glViewport(0, 0, width, height); });
 
     const auto readFile = [](const char* path) {
         std::ifstream file(path);
@@ -101,14 +147,12 @@ int main() {
 
     // load texture
     uint32_t texture;
-    glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int width, height, numChannels;
     uint8_t* data = stbi_load("res/textures/container.jpg", &width, &height, &numChannels, 0);
@@ -116,8 +160,10 @@ int main() {
         throw std::runtime_error("failed to load image from disk");
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glTextureStorage2D(texture, 1, GL_RGB8, width, height);
+    glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateTextureMipmap(texture);
+
     stbi_set_flip_vertically_on_load(true);
     stbi_image_free(data);
 
@@ -201,8 +247,7 @@ int main() {
             glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
         }
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTextureUnit(0, texture);
 
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
