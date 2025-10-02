@@ -65,7 +65,7 @@ int main() {
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
@@ -127,23 +127,27 @@ int main() {
     // clang-format on
 
     uint32_t vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
+    glCreateBuffers(1, &vbo);
+    glNamedBufferData(vbo, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
 
     uint32_t ebo;
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+    glCreateBuffers(1, &ebo);
+    glNamedBufferData(ebo, sizeof(indices), indices.data(), GL_STATIC_DRAW);
 
     uint32_t vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    glCreateVertexArrays(1, &vao);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glVertexArrayVertexBuffer(vao, 0, vbo, 0, 5 * sizeof(float));
+    glVertexArrayElementBuffer(vao, ebo);
+
+    glEnableVertexArrayAttrib(vao, 0);
+    glEnableVertexArrayAttrib(vao, 1);
+
+    glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
+
+    glVertexArrayAttribBinding(vao, 0, 0);
+    glVertexArrayAttribBinding(vao, 1, 0);
 
     // load texture
     uint32_t texture;
@@ -226,11 +230,9 @@ int main() {
 
     double lastTime = 0;
     glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     while (!glfwWindowShouldClose(window.getHandle())) {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        shader.bind();
 
         {
             const double time = glfwGetTime();
@@ -241,17 +243,15 @@ int main() {
             processKeyboard(dt);
 
             cam.update();
-
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
-            glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
         }
 
-        glBindTextureUnit(0, texture);
+        shader.bind();
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
 
+        glBindTextureUnit(0, texture);
         glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window.getHandle());
@@ -261,6 +261,7 @@ int main() {
     glDeleteTextures(1, &texture);
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
 
     glfwTerminate();
 }
