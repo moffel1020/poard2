@@ -31,15 +31,8 @@ public:
     float getYaw() { return yaw; };
     float getPitch() { return pitch; };
 
-    // clang-format off
-    template<Camera::Dir> void move(float) { static_assert(false); }
-    template<> inline void move<Dir::Front>(float distance) { position += distance * direction; }
-    template<> inline void move<Dir::Back>(float distance)  { position -= distance * direction; }
-    template<> inline void move<Dir::Left>(float distance)  { position -= distance * right; }
-    template<> inline void move<Dir::Right>(float distance) { position += distance * right; }
-    template<> inline void move<Dir::Up>(float distance)    { position += distance * up; }
-    template<> inline void move<Dir::Down>(float distance)  { position -= distance * up; }
-    // clang-format on
+    template <Camera::Dir>
+    void move(float);
 
 private:
     glm::vec3 position;
@@ -55,6 +48,31 @@ private:
     glm::mat4 proj;
 
     static constexpr float zNear = 0.1f;
-    static constexpr float zFar = 1000.0f;
+    static constexpr float zFar = 10000.0f;
     static constexpr glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 };
+
+template <>
+inline void Camera::move<Camera::Dir::Front>(float distance) {
+    position += distance * direction;
+}
+template <>
+inline void Camera::move<Camera::Dir::Back>(float distance) {
+    position -= distance * direction;
+}
+template <>
+inline void Camera::move<Camera::Dir::Left>(float distance) {
+    position -= distance * right;
+}
+template <>
+inline void Camera::move<Camera::Dir::Right>(float distance) {
+    position += distance * right;
+}
+template <>
+inline void Camera::move<Camera::Dir::Up>(float distance) {
+    position += distance * up;
+}
+template <>
+inline void Camera::move<Camera::Dir::Down>(float distance) {
+    position -= distance * up;
+}

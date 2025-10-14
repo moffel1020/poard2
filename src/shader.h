@@ -3,7 +3,7 @@
 
 class Shader {
 public:
-    Shader(const std::string& vertSource, const std::string fragSource);
+    Shader(const std::string& vertSource, const std::string& fragSource);
     ~Shader();
     void bind() const;
 

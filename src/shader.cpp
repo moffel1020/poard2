@@ -5,7 +5,7 @@
 
 const size_t INFO_SIZE = 4096;
 
-Shader::Shader(const std::string& vertSource, const std::string fragSource) {
+Shader::Shader(const std::string& vertSource, const std::string& fragSource) {
     id = glCreateProgram();
 
     const uint32_t vs = compileShader(GL_VERTEX_SHADER, vertSource);
@@ -17,7 +17,7 @@ Shader::Shader(const std::string& vertSource, const std::string fragSource) {
     int succes;
     glGetProgramiv(id, GL_LINK_STATUS, &succes);
     if (!succes) {
-        std::array<char, INFO_SIZE> linkInfo{};
+        static std::array<char, INFO_SIZE> linkInfo{};
         glGetProgramInfoLog(id, linkInfo.size(), nullptr, linkInfo.data());
         std::cout << "ERROR: vertex and fragment shaders failed to link\n" << linkInfo.data() << std::endl;
     }
@@ -36,7 +36,7 @@ uint32_t Shader::compileShader(GLenum type, const std::string& source) {
     int success = 0;
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success) {
-        std::array<char, INFO_SIZE> compileInfo{};
+        static std::array<char, INFO_SIZE> compileInfo{};
         glGetShaderInfoLog(id, compileInfo.size(), nullptr, compileInfo.data());
         std::cout << "ERROR: shader compilation of type " << type << " failed\n"  << compileInfo.data() << std::endl;
     }

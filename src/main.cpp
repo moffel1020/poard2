@@ -1,10 +1,12 @@
 #include "camera.h"
 #include "input.h"
+#include "noise.h"
 #include "shader.h"
 #include "stb_image.h"
 #include "window.h"
 
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <array>
 #include <fstream>
 #include <functional>
@@ -41,8 +43,8 @@ static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity
         case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
         case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
         case GL_DEBUG_TYPE_MARKER: return "MARKER";
-        case GL_DEBUG_TYPE_OTHER:  return "OTHER";
-        default:  return "";
+        case GL_DEBUG_TYPE_OTHER: return "OTHER";
+        default: return "";
         }
     }();
 
@@ -59,6 +61,41 @@ static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity
     std::cout << srcStr << ", " << typeStr << ", " << severityStr << ", " << id << ": " << message << '\n';
 }
 
+std::vector<uint8_t> genHeightmap(int w, int h) {
+    constexpr int gridSize = 40;
+    constexpr int octaves = 12;
+    constexpr float lacunarity = 2;
+    constexpr float gain = 0.5;
+
+    std::vector<uint8_t> image;
+    image.resize(w * h * 3);
+
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            int index = (y * w + x) * 3;
+            float val = 0;
+            float freq = 1;
+            float amp = 1;
+
+            for (int i = 0; i < octaves; i++) {
+                val += Noise::perlin(x * freq / gridSize, y * freq / gridSize) * amp;
+                freq *= lacunarity;
+                amp *= gain;
+            }
+
+            val = std::clamp(val * 1.2f, -1.0f, 1.0f);
+
+            int color = (int)(((val + 1.0f) * 0.5f) * 255);
+            // this is dumb
+            image[index] = color;
+            image[index + 1] = color;
+            image[index + 2] = color;
+        }
+    }
+
+    return image;
+}
+
 int main() {
     if (!glfwInit()) {
         throw std::runtime_error("failed to initialize glfw");
@@ -69,21 +106,20 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
-    constexpr float initScreenWidth = 800.0f;
-    constexpr float initScreenHeight = 600.0f;
-    Window window(initScreenWidth, initScreenHeight, "poard2");
+    Window window(1280, 720, "poard2");
 
     if (!gladLoadGL(static_cast<GLADloadfunc>(glfwGetProcAddress))) {
         throw std::runtime_error("failed to initialize glad");
     }
 
-    glViewport(0, 0, initScreenWidth, initScreenHeight);
-
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(&debugCallback, nullptr);
 
+    const auto [w, h] = window.size();
+    glViewport(0, 0, w, h);
+
     glfwSetFramebufferSizeCallback(
-        window.getHandle(), [](GLFWwindow*, int width, int height) { glViewport(0, 0, width, height); });
+        window.handle(), [](GLFWwindow*, int width, int height) { glViewport(0, 0, width, height); });
 
     const auto readFile = [](const char* path) {
         std::ifstream file(path);
@@ -97,59 +133,47 @@ int main() {
     const std::string fragSrc = readFile("res/shaders/shader.frag");
     const Shader shader(vertSrc, fragSrc);
 
-    // create vertex buffer
     // clang-format off
     const std::array vertices = {
-        // vertices          // texCoords
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  // front top right
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  // front bottom right
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  // front bottom left
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  // front top left 
-
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  // back top right
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  // back bottom right
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  // back bottom left
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  // back top left 
+        // vertices          // colors           // texCoords
+         0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 1.0f,            // front top right
+         0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 0.0f,            // front bottom right
+        -0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 0.0f,            // front bottom left
+        -0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 1.0f,            // front top left 
     };
 
     const std::array indices = {
-        // front
         0u, 1u, 3u,
         1u, 2u, 3u, 
-        // back
-        4u, 5u, 7u,
-        5u, 6u, 7u, 
-        // top
-        // bot
-        // left
-        // right
     };
     // clang-format on
 
     uint32_t vbo;
     glCreateBuffers(1, &vbo);
-    glNamedBufferData(vbo, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(vbo, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     uint32_t ebo;
     glCreateBuffers(1, &ebo);
-    glNamedBufferData(ebo, sizeof(indices), indices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(ebo, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
     uint32_t vao;
     glCreateVertexArrays(1, &vao);
 
-    glVertexArrayVertexBuffer(vao, 0, vbo, 0, 5 * sizeof(float));
+    glVertexArrayVertexBuffer(vao, 0, vbo, 0, 8 * sizeof(float));
     glVertexArrayElementBuffer(vao, ebo);
 
     glEnableVertexArrayAttrib(vao, 0);
     glEnableVertexArrayAttrib(vao, 1);
+    glEnableVertexArrayAttrib(vao, 2);
 
     glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
+    glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
+    glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float));
 
     glVertexArrayAttribBinding(vao, 0, 0);
     glVertexArrayAttribBinding(vao, 1, 0);
+    glVertexArrayAttribBinding(vao, 2, 0);
 
-    // load texture
     uint32_t texture;
     glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 
@@ -158,23 +182,31 @@ int main() {
     glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    int width, height, numChannels;
-    uint8_t* data = stbi_load("res/textures/container.jpg", &width, &height, &numChannels, 0);
-    if (!data) {
-        throw std::runtime_error("failed to load image from disk");
-    }
+    // int width, height, numChannels;
+    // uint8_t* data = stbi_load("res/textures/container.jpg", &width, &height, &numChannels, 0);
+    // if (!data) {
+    //     throw std::runtime_error("failed to load image from disk");
+    // }
 
-    glTextureStorage2D(texture, 1, GL_RGB8, width, height);
-    glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    // glTextureStorage2D(texture, 1, GL_RGB8, width, height);
+    // glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    // glGenerateTextureMipmap(texture);
+
+    constexpr int hWidth = 512;
+    constexpr int hHeight = 512;
+    const auto hTexture = genHeightmap(hWidth, hHeight);
+
+    glTextureStorage2D(texture, 1, GL_RGB8, hWidth, hHeight);
+    glTextureSubImage2D(texture, 0, 0, 0, hWidth, hHeight, GL_RGB, GL_UNSIGNED_BYTE, hTexture.data());
     glGenerateTextureMipmap(texture);
 
-    stbi_set_flip_vertically_on_load(true);
-    stbi_image_free(data);
+    // stbi_set_flip_vertically_on_load(true);
+    // stbi_image_free(data);
 
-    // setup mvp matrices
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-    Camera cam(initScreenWidth / initScreenHeight);
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    // model = glm::translate(model, glm::vec3(0.0f, 1000.0f, 0.0f));
+    // model = glm::scale(model, glm::vec3(10000.0f));
+    Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
     const uint32_t modelLoc = glGetUniformLocation(shader.getId(), "model");
     const uint32_t viewLoc = glGetUniformLocation(shader.getId(), "view");
@@ -187,7 +219,7 @@ int main() {
         static double lastYPos = 0;
         static bool firstMouse = true;
 
-        const auto [xPos, yPos] = Input::getMousePos(window.getHandle());
+        const auto [xPos, yPos] = Input::getMousePos(window.handle());
         if (firstMouse) {
             lastXPos = xPos;
             lastYPos = yPos;
@@ -204,34 +236,38 @@ int main() {
     };
 
     const auto processKeyboard = [&window, &cam](double dt) {
-        const float moveSpeed = 2.0f * dt;
+        float moveSpeed = 5.0f * dt;
         using Dir = Camera::Dir;
-        const auto keyPressed = std::bind(Input::isKeyPressed, window.getHandle(), std::placeholders::_1);
+        const auto keyDown = std::bind(Input::isKeyDown, window.handle(), std::placeholders::_1);
 
-        if (keyPressed(GLFW_KEY_W)) {
+        if (keyDown(GLFW_KEY_T)) {
+            moveSpeed = 500.0f * dt;
+        }
+
+        if (keyDown(GLFW_KEY_W)) {
             cam.move<Dir::Front>(moveSpeed);
         }
-        if (keyPressed(GLFW_KEY_A)) {
+        if (keyDown(GLFW_KEY_A)) {
             cam.move<Dir::Left>(moveSpeed);
         }
-        if (keyPressed(GLFW_KEY_S)) {
+        if (keyDown(GLFW_KEY_S)) {
             cam.move<Dir::Back>(moveSpeed);
         }
-        if (keyPressed(GLFW_KEY_D)) {
+        if (keyDown(GLFW_KEY_D)) {
             cam.move<Dir::Right>(moveSpeed);
         }
-        if (keyPressed(GLFW_KEY_SPACE)) {
+        if (keyDown(GLFW_KEY_SPACE)) {
             cam.move<Dir::Up>(moveSpeed);
         }
-        if (keyPressed(GLFW_KEY_LEFT_SHIFT)) {
+        if (keyDown(GLFW_KEY_LEFT_SHIFT)) {
             cam.move<Dir::Down>(moveSpeed);
         }
     };
 
     double lastTime = 0;
-    glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window.handle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    while (!glfwWindowShouldClose(window.getHandle())) {
+    while (!glfwWindowShouldClose(window.handle())) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         {
@@ -254,7 +290,7 @@ int main() {
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
-        glfwSwapBuffers(window.getHandle());
+        glfwSwapBuffers(window.handle());
         glfwPollEvents();
     }
 

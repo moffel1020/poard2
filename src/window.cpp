@@ -11,7 +11,8 @@ Window::Window(uint32_t width, uint32_t height, const char* title)
     glfwSetWindowUserPointer(glfwWindow.get(), this);
     glfwMakeContextCurrent(glfwWindow.get());
     glfwSwapInterval(1);
-    glfwSetKeyCallback(glfwWindow.get(), &Window::keyCallback);
-    glfwSetCursorPosCallback(glfwWindow.get(), &Window::mousePosCallback);
-    glfwSetMouseButtonCallback(glfwWindow.get(), &Window::mouseButtonCallback);
+    // glfwSetKeyCallback(glfwWindow.get(), &Window::keyCallback);
+    // glfwSetCursorPosCallback(glfwWindow.get(), &Window::mousePosCallback);
+    // glfwSetMouseButtonCallback(glfwWindow.get(), &Window::mouseButtonCallback);
+    // glfwSetScrollCallback(glfwWindow.get(), &Window::scrollCallback);
 }

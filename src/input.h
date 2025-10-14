@@ -8,7 +8,7 @@ struct MousePos {
 
 class Input {
 public:
-    static bool isKeyPressed(GLFWwindow* w, int glfwKey) { return glfwGetKey(w, glfwKey) == GLFW_PRESS; }
+    static bool isKeyDown(GLFWwindow* w, int glfwKey) { return glfwGetKey(w, glfwKey) == GLFW_PRESS; }
 
     static bool isMousePressed(GLFWwindow* w, int glfwMouseButton) {
         return glfwGetMouseButton(w, glfwMouseButton) == GLFW_PRESS;
