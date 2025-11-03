@@ -70,8 +70,8 @@ std::vector<uint8_t> genHeightmap(int w, int h) {
     std::vector<uint8_t> image;
     image.resize(w * h * 3);
 
-    for (int x = 0; x < w; x++) {
-        for (int y = 0; y < h; y++) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
             int index = (y * w + x) * 3;
             float val = 0;
             float freq = 1;
@@ -139,12 +139,12 @@ int main() {
          0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 1.0f,            // front top right
          0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 0.0f,            // front bottom right
         -0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 0.0f,            // front bottom left
-        -0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 1.0f,            // front top left 
+        -0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 1.0f,            // front top left
     };
 
     const std::array indices = {
         0u, 1u, 3u,
-        1u, 2u, 3u, 
+        1u, 2u, 3u,
     };
     // clang-format on
 

@@ -17,7 +17,7 @@ FetchContent_MakeAvailable(GLFW)
 
 # glm
 set(GLM_ENABLE_CXX_17 ON)
-# set(GLM_ENABLE_SIMD_AVX2 ON)
+set(GLM_ENABLE_SIMD_AVX2 ON)
 FetchContent_Declare(
     glm
     GIT_REPOSITORY	https://github.com/g-truc/glm.git
@@ -28,7 +28,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 # glad
-find_package(glad REQUIRED)
+add_subdirectory(${PROJECT_SOURCE_DIR}/deps/glad glad)
 
 # stb
-find_package(stb REQUIRED)
+add_subdirectory(${PROJECT_SOURCE_DIR}/deps/stb stb)

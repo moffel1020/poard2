@@ -12,9 +12,9 @@ struct WindowSize {
 class Window {
 public:
     Window(uint32_t width, uint32_t height, const char* title);
-    GLFWwindow* handle() { return glfwWindow.get(); }
+    GLFWwindow* handle() const { return glfwWindow.get(); }
 
-    WindowSize size() { 
+    WindowSize size() const {
         int32_t w, h;
         glfwGetWindowSize(glfwWindow.get(), &w, &h);
         return WindowSize{static_cast<uint32_t>(w), static_cast<uint32_t>(h)};

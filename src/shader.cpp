@@ -3,7 +3,7 @@
 #include <array>
 #include <iostream>
 
-const size_t INFO_SIZE = 4096;
+constexpr size_t INFO_SIZE = 4096;
 
 Shader::Shader(const std::string& vertSource, const std::string& fragSource) {
     id = glCreateProgram();
@@ -38,7 +38,7 @@ uint32_t Shader::compileShader(GLenum type, const std::string& source) {
     if (!success) {
         static std::array<char, INFO_SIZE> compileInfo{};
         glGetShaderInfoLog(id, compileInfo.size(), nullptr, compileInfo.data());
-        std::cout << "ERROR: shader compilation of type " << type << " failed\n"  << compileInfo.data() << std::endl;
+        std::cout << "ERROR: shader compilation of type " << type << " failed\n" << compileInfo.data() << std::endl;
     }
 
     return id;
