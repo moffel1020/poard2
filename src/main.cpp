@@ -133,13 +133,16 @@ int main() {
     const std::string fragSrc = readFile("res/shaders/shader.frag");
     const Shader shader(vertSrc, fragSrc);
 
-    // clang-format off
+    struct Vertex {
+        glm::vec3 pos;
+        glm::vec2 texCoord;
+    };
+
     const std::array vertices = {
-        // vertices          // colors           // texCoords
-         0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 1.0f,            // front top right
-         0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  1.0f, 0.0f,            // front bottom right
-        -0.5f, -0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 0.0f,            // front bottom left
-        -0.5f,  0.5f,  0.5f,  0.2f, 0.5f, 0.2f,  0.0f, 1.0f,            // front top left
+        Vertex{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f}},
+        Vertex{{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f}},
+        Vertex{{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f}},
+        Vertex{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f}},
     };
 
     const std::array indices = {
@@ -150,7 +153,7 @@ int main() {
 
     uint32_t vbo;
     glCreateBuffers(1, &vbo);
-    glNamedBufferData(vbo, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(vbo, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
     uint32_t ebo;
     glCreateBuffers(1, &ebo);
@@ -159,20 +162,17 @@ int main() {
     uint32_t vao;
     glCreateVertexArrays(1, &vao);
 
-    glVertexArrayVertexBuffer(vao, 0, vbo, 0, 8 * sizeof(float));
+    glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(Vertex));
     glVertexArrayElementBuffer(vao, ebo);
 
     glEnableVertexArrayAttrib(vao, 0);
     glEnableVertexArrayAttrib(vao, 1);
-    glEnableVertexArrayAttrib(vao, 2);
 
     glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayAttribFormat(vao, 1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
-    glVertexArrayAttribFormat(vao, 2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float));
+    glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoord));
 
     glVertexArrayAttribBinding(vao, 0, 0);
     glVertexArrayAttribBinding(vao, 1, 0);
-    glVertexArrayAttribBinding(vao, 2, 0);
 
     uint32_t texture;
     glCreateTextures(GL_TEXTURE_2D, 1, &texture);
@@ -192,8 +192,8 @@ int main() {
     // glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
     // glGenerateTextureMipmap(texture);
 
-    constexpr int hWidth = 512;
-    constexpr int hHeight = 512;
+    constexpr int32_t hWidth = 512;
+    constexpr int32_t hHeight = 512;
     const auto hTexture = genHeightmap(hWidth, hHeight);
 
     glTextureStorage2D(texture, 1, GL_RGB8, hWidth, hHeight);
@@ -204,8 +204,8 @@ int main() {
     // stbi_image_free(data);
 
     glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    // model = glm::translate(model, glm::vec3(0.0f, 1000.0f, 0.0f));
-    // model = glm::scale(model, glm::vec3(10000.0f));
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -4900.0f));
+    model = glm::scale(model, glm::vec3(10000.0f));
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
     const uint32_t modelLoc = glGetUniformLocation(shader.getId(), "model");
@@ -237,7 +237,7 @@ int main() {
 
     const auto processKeyboard = [&window, &cam](double dt) {
         float moveSpeed = 5.0f * dt;
-        using Dir = Camera::Dir;
+        using D = Camera::Dir;
         const auto keyDown = std::bind(Input::isKeyDown, window.handle(), std::placeholders::_1);
 
         if (keyDown(GLFW_KEY_T)) {
@@ -245,22 +245,22 @@ int main() {
         }
 
         if (keyDown(GLFW_KEY_W)) {
-            cam.move<Dir::Front>(moveSpeed);
+            cam.move<D::Front>(moveSpeed);
         }
         if (keyDown(GLFW_KEY_A)) {
-            cam.move<Dir::Left>(moveSpeed);
+            cam.move<D::Left>(moveSpeed);
         }
         if (keyDown(GLFW_KEY_S)) {
-            cam.move<Dir::Back>(moveSpeed);
+            cam.move<D::Back>(moveSpeed);
         }
         if (keyDown(GLFW_KEY_D)) {
-            cam.move<Dir::Right>(moveSpeed);
+            cam.move<D::Right>(moveSpeed);
         }
         if (keyDown(GLFW_KEY_SPACE)) {
-            cam.move<Dir::Up>(moveSpeed);
+            cam.move<D::Up>(moveSpeed);
         }
         if (keyDown(GLFW_KEY_LEFT_SHIFT)) {
-            cam.move<Dir::Down>(moveSpeed);
+            cam.move<D::Down>(moveSpeed);
         }
     };
 
