@@ -7,7 +7,6 @@
 
 #include <GLFW/glfw3.h>
 #include <algorithm>
-#include <array>
 #include <fstream>
 #include <functional>
 #include <glad/gl.h>
@@ -16,6 +15,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec2 texCoord;
+};
 
 static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
     const void* userParam) {
@@ -61,39 +65,59 @@ static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity
     std::cout << srcStr << ", " << typeStr << ", " << severityStr << ", " << id << ": " << message << '\n';
 }
 
-std::vector<uint8_t> genHeightmap(int w, int h) {
-    constexpr int gridSize = 40;
-    constexpr int octaves = 12;
+std::vector<Vertex> genHeightmap(int32_t w, int32_t h) {
+    constexpr int32_t gridSize = 20;
+    constexpr int32_t octaves = 12;
     constexpr float lacunarity = 2;
     constexpr float gain = 0.5;
 
-    std::vector<uint8_t> image;
-    image.resize(w * h * 3);
+    std::vector<Vertex> heightmap;
+    heightmap.reserve(w * h);
 
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            int index = (y * w + x) * 3;
+    for (int32_t z = 0; z < h; z++) {
+        for (int32_t x = 0; x < w; x++) {
             float val = 0;
             float freq = 1;
             float amp = 1;
 
-            for (int i = 0; i < octaves; i++) {
-                val += Noise::perlin(x * freq / gridSize, y * freq / gridSize) * amp;
+            for (int32_t i = 0; i < octaves; i++) {
+                val += Noise::perlin(x * freq / gridSize, z * freq / gridSize) * amp;
                 freq *= lacunarity;
                 amp *= gain;
             }
 
             val = std::clamp(val * 1.2f, -1.0f, 1.0f);
 
-            int color = (int)(((val + 1.0f) * 0.5f) * 255);
-            // this is dumb
-            image[index] = color;
-            image[index + 1] = color;
-            image[index + 2] = color;
+            float height = (((val + 1.0f) * 0.5f));
+            heightmap.emplace_back(Vertex{{x, height, z}, {0.0f, 0.0f}});
         }
     }
 
-    return image;
+    return heightmap;
+}
+
+std::vector<uint32_t> genHeightIndices(int32_t w, int32_t h) {
+    std::vector<uint32_t> indices;
+    indices.reserve((w - 1) * (h - 1) * 2 * 3);
+
+    for (int32_t j = 0; j < h - 1; j++) {
+        for (int32_t i = 0; i < w - 1; i++) {
+            int32_t tl = i + j * w;
+            int32_t tr = i + 1 + j * w;
+            int32_t bl = i + (j + 1) * w;
+            int32_t br = i + 1 + (j + 1) * w;
+
+            indices.push_back(tl);
+            indices.push_back(bl);
+            indices.push_back(tr);
+
+            indices.push_back(bl);
+            indices.push_back(br);
+            indices.push_back(tr);
+        }
+    }
+
+    return indices;
 }
 
 int main() {
@@ -133,23 +157,10 @@ int main() {
     const std::string fragSrc = readFile("res/shaders/shader.frag");
     const Shader shader(vertSrc, fragSrc);
 
-    struct Vertex {
-        glm::vec3 pos;
-        glm::vec2 texCoord;
-    };
-
-    const std::array vertices = {
-        Vertex{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f}},
-        Vertex{{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f}},
-        Vertex{{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f}},
-        Vertex{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f}},
-    };
-
-    const std::array indices = {
-        0u, 1u, 3u,
-        1u, 2u, 3u,
-    };
-    // clang-format on
+    constexpr int32_t hWidth = 1024;
+    constexpr int32_t hHeight = 1024;
+    const auto vertices = genHeightmap(hWidth, hHeight);
+    const auto indices = genHeightIndices(hWidth, hHeight);
 
     uint32_t vbo;
     glCreateBuffers(1, &vbo);
@@ -174,13 +185,13 @@ int main() {
     glVertexArrayAttribBinding(vao, 0, 0);
     glVertexArrayAttribBinding(vao, 1, 0);
 
-    uint32_t texture;
-    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+    // uint32_t texture;
+    // glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 
-    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    // glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    // glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // int width, height, numChannels;
     // uint8_t* data = stbi_load("res/textures/container.jpg", &width, &height, &numChannels, 0);
@@ -192,20 +203,11 @@ int main() {
     // glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
     // glGenerateTextureMipmap(texture);
 
-    constexpr int32_t hWidth = 512;
-    constexpr int32_t hHeight = 512;
-    const auto hTexture = genHeightmap(hWidth, hHeight);
-
-    glTextureStorage2D(texture, 1, GL_RGB8, hWidth, hHeight);
-    glTextureSubImage2D(texture, 0, 0, 0, hWidth, hHeight, GL_RGB, GL_UNSIGNED_BYTE, hTexture.data());
-    glGenerateTextureMipmap(texture);
-
     // stbi_set_flip_vertically_on_load(true);
     // stbi_image_free(data);
 
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -4900.0f));
-    model = glm::scale(model, glm::vec3(10000.0f));
+    glm::mat4 model(1.0f);
+    model = glm::scale(model, glm::vec3(10.0f, 1.0f, 10.0f));
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
     const uint32_t modelLoc = glGetUniformLocation(shader.getId(), "model");
@@ -286,7 +288,7 @@ int main() {
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
 
-        glBindTextureUnit(0, texture);
+        // glBindTextureUnit(0, texture);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
@@ -294,7 +296,7 @@ int main() {
         glfwPollEvents();
     }
 
-    glDeleteTextures(1, &texture);
+    // glDeleteTextures(1, &texture);
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);

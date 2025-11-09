@@ -1,14 +1,14 @@
 #version 450 core
 
-layout(location = 0) in vec2 texCoord;
+layout(location = 0) in vec3 position;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(binding = 0) uniform sampler2D myTexture;
-
 void main() {
-    vec4 col = texture(myTexture, texCoord);
-    float v = col.r;
+    vec3 col = position;
+    float v = col.y;
+
+    FragColor = vec4(v, v, v, 1.0);
 
     // if (v < 0.35) {
     //     // water
@@ -23,8 +23,7 @@ void main() {
     //     // stone
     //     col.rgb = vec3(0.33, 0.33, 0.33);
     // }
+    // col *= (1.0 - v);
+    // FragColor = vec4(col, 1.0);
 
-    col = vec4(v, v, v, 1.0);
-
-    FragColor = col;
 }

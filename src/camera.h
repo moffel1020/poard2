@@ -48,7 +48,7 @@ private:
     glm::mat4 proj;
 
     static constexpr float zNear = 0.1f;
-    static constexpr float zFar = 10000.0f;
+    static constexpr float zFar = 100000.0f;
     static constexpr glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 };
 
