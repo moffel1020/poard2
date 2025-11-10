@@ -14,6 +14,7 @@ add_executable(poard2
     ${SRC_DIR}/main.cpp
     ${SRC_DIR}/window.cpp
     ${SRC_DIR}/shader.cpp
+    ${SRC_DIR}/shader_program.cpp
     ${SRC_DIR}/camera.cpp
 )
 

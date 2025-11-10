@@ -2,7 +2,7 @@
 #include "input.h"
 #include "noise.h"
 #include "shader.h"
-#include "stb_image.h"
+#include "shader_program.h"
 #include "window.h"
 
 #include <GLFW/glfw3.h>
@@ -15,6 +15,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
+#include <stb_image.h>
 
 struct Vertex {
     glm::vec3 pos;
@@ -66,7 +67,7 @@ static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity
 }
 
 std::vector<Vertex> genHeightmap(int32_t w, int32_t h) {
-    constexpr int32_t gridSize = 20;
+    constexpr int32_t gridSize = 200;
     constexpr int32_t octaves = 12;
     constexpr float lacunarity = 2;
     constexpr float gain = 0.5;
@@ -155,7 +156,10 @@ int main() {
 
     const std::string vertSrc = readFile("res/shaders/shader.vert");
     const std::string fragSrc = readFile("res/shaders/shader.frag");
-    const Shader shader(vertSrc, fragSrc);
+    const ShaderProgram program({
+        Shader(vertSrc, ShaderType::Vertex),
+        Shader(fragSrc, ShaderType::Fragment),
+    });
 
     constexpr int32_t hWidth = 1024;
     constexpr int32_t hHeight = 1024;
@@ -207,12 +211,12 @@ int main() {
     // stbi_image_free(data);
 
     glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(10.0f, 1.0f, 10.0f));
+    // model = glm::scale(model, glm::vec3(10.0f, 1.0f, 10.0f));
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
-    const uint32_t modelLoc = glGetUniformLocation(shader.getId(), "model");
-    const uint32_t viewLoc = glGetUniformLocation(shader.getId(), "view");
-    const uint32_t projLoc = glGetUniformLocation(shader.getId(), "proj");
+    const uint32_t modelLoc = glGetUniformLocation(program.getId(), "model");
+    const uint32_t viewLoc = glGetUniformLocation(program.getId(), "view");
+    const uint32_t projLoc = glGetUniformLocation(program.getId(), "proj");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -283,7 +287,7 @@ int main() {
             cam.update();
         }
 
-        shader.bind();
+        program.bind();
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
