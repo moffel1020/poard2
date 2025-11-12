@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 namespace {
-glm::vec2 randomGradient(int ix, int iy) {
+glm::vec2 hash(int ix, int iy) {
     // idk how this works
     const uint32_t w = 8 * sizeof(uint32_t);
     const uint32_t s = w / 2;
@@ -24,7 +24,7 @@ glm::vec2 randomGradient(int ix, int iy) {
 
 // computes the dot product of the distance and gradient vectors.
 float dotGridGradient(int ix, int iy, float x, float y) {
-    const auto gradient = randomGradient(ix, iy);
+    const auto gradient = hash(ix, iy);
     const auto distance = glm::vec2(x - static_cast<float>(ix), y - static_cast<float>(iy));
     return glm::dot(distance, gradient);
 }

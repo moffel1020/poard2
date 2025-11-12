@@ -1,0 +1,91 @@
+#version 450 core
+
+struct Vertex {
+    float position[3];
+    float texCoord[2];
+};
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(std430, binding = 0) writeonly buffer ssbo1 {
+    Vertex vertices[];
+};
+
+vec2 hash(float ix, float iy) {
+    const uint w = 32;
+    const uint s = w / 2;
+
+    uint a = uint(ix);
+    uint b = uint(iy);
+
+    a *= 3284157443u;
+
+    b ^= a << s | a >> (w - s);
+    b *= 1911520717;
+
+    a ^= b << s | b >> (w - s);
+    a *= 2048419325;
+    const float random = a * (3.14159265 / ~(~0u >> 1));
+
+    return vec2(sin(random), cos(random));
+}
+
+float dotGridGradient(float ix, float iy, float x, float y) {
+    vec2 gradient = hash(ix, iy);
+    vec2 dist = vec2(x - ix, y - iy);
+    return dot(dist, gradient);
+}
+
+float cubicInterp(float a0, float a1, float w) {
+    return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0;
+}
+
+float perlin(float x, float y) {
+    vec2 v0 = vec2(floor(x), floor(y));
+    vec2 v1 = vec2(v0.x + 1, v0.y + 1);
+
+    float sx = x - v0.x;
+    float sy = y - v0.y;
+
+    float n0 = dotGridGradient(v0.x, v0.y, x, y);
+    float n1 = dotGridGradient(v1.x, v0.y, x, y);
+    float ix0 = cubicInterp(n0, n1, sx);
+
+    n0 = dotGridGradient(v0.x, v1.y, x, y);
+    n1 = dotGridGradient(v1.x, v1.y, x, y);
+    float ix1 = cubicInterp(n0, n1, sx);
+
+    return cubicInterp(ix0, ix1, sy);
+}
+
+float noise(int x, int z) {
+    const uint gridSize = 200;
+    const uint octaves = 12;
+    const float lacunarity = 2;
+    const float gain = 0.5;
+
+    float val = 0;
+    float freq = 1;
+    float amp = 1;
+
+    for (int i = 0; i < octaves; i++) {
+        val += perlin(x * freq / gridSize, z * freq / gridSize) * amp; 
+        freq *= lacunarity;
+        amp *= gain;
+    }
+
+    val = clamp(val * 1.2, -1.0, 1.0);
+    float height = (val + 1.0) * 0.5;
+    return height;
+}
+
+const uint width = 1024;
+
+void main() {
+    const uint x = gl_GlobalInvocationID.x;
+    const uint z = gl_GlobalInvocationID.y;
+    const float y = noise(int(x), int(z));
+
+    const uint idx = x + z * width;
+    vertices[idx] = Vertex(float[3](x, y, z), float[2](0.0, 0.0));
+}

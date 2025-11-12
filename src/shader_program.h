@@ -16,6 +16,7 @@ public:
     }
 
     void bind() const { glUseProgram(id); }
+
     uint32_t getId() const { return id; };
 
     ~ShaderProgram() {

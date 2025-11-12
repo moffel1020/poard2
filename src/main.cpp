@@ -121,10 +121,18 @@ std::vector<uint32_t> genHeightIndices(int32_t w, int32_t h) {
     return indices;
 }
 
-int main() {
-    if (!glfwInit()) {
-        throw std::runtime_error("failed to initialize glfw");
+struct GlfwContext {
+    GlfwContext() {
+        if (!glfwInit()) {
+            throw std::runtime_error("failed to initialize glfw");
+        }
     }
+
+    ~GlfwContext() { glfwTerminate(); }
+};
+
+int main() {
+    GlfwContext ctx;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
@@ -153,6 +161,33 @@ int main() {
         file >> sstr.rdbuf();
         return sstr.str();
     };
+
+    {
+        const uint32_t worldSize = 1024;
+    
+        const std::string compSource = readFile("res/shaders/terrain.comp");
+        const ShaderProgram compProgram({Shader(compSource, ShaderType::Compute)});
+        compProgram.bind();
+    
+        uint32_t verticesId = 0;
+        std::vector<Vertex> vertices;
+        vertices.resize(worldSize * worldSize);
+        glCreateBuffers(1, &verticesId);
+        glNamedBufferStorage(verticesId, worldSize * worldSize * sizeof(Vertex), vertices.data(), GL_DYNAMIC_STORAGE_BIT);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesId);
+    
+        glDispatchCompute(worldSize / 8, worldSize / 8, 1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    
+        glGetNamedBufferSubData(verticesId, 0, worldSize * worldSize * sizeof(Vertex), vertices.data());
+    
+        std::cout << "\n";
+        for (int i = 0; i < 20; i++) {
+            std::cout << vertices[i].pos.y << " ";
+        }
+        std::cout << std::endl;
+        return 0;
+    }
 
     const std::string vertSrc = readFile("res/shaders/shader.vert");
     const std::string fragSrc = readFile("res/shaders/shader.frag");
@@ -304,6 +339,4 @@ int main() {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
-
-    glfwTerminate();
 }
