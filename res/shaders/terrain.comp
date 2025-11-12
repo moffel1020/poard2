@@ -1,5 +1,6 @@
 #version 450 core
 
+// use float arrays for same packing as on cpu. vec3 would be padded with 1 extra byte
 struct Vertex {
     float position[3];
     float texCoord[2];
@@ -79,13 +80,13 @@ float noise(int x, int z) {
     return height;
 }
 
-const uint width = 1024;
+const uint chunkWidth = 4096;
 
 void main() {
     const uint x = gl_GlobalInvocationID.x;
     const uint z = gl_GlobalInvocationID.y;
     const float y = noise(int(x), int(z));
 
-    const uint idx = x + z * width;
+    const uint idx = x + z * chunkWidth;
     vertices[idx] = Vertex(float[3](x, y, z), float[2](0.0, 0.0));
 }

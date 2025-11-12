@@ -1,12 +1,13 @@
 #include "camera.h"
 #include "input.h"
-#include "noise.h"
 #include "shader.h"
 #include "shader_program.h"
+#include "terrain_gen.h"
+#include "util.h"
 #include "window.h"
 
+
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <glad/gl.h>
@@ -16,110 +17,6 @@
 #include <iostream>
 #include <sstream>
 #include <stb_image.h>
-
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec2 texCoord;
-};
-
-static void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
-    const void* userParam) {
-    (void)length;
-    (void)userParam;
-
-    // clang-format off
-    const auto srcStr = [source]() {
-        switch (source) {
-        case GL_DEBUG_SOURCE_API: return "API";
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "WINDOW SYSTEM";
-        case GL_DEBUG_SOURCE_SHADER_COMPILER: return "SHADER COMPILER";
-        case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
-        case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
-        case GL_DEBUG_SOURCE_OTHER: return "OTHER";
-        default: return "";
-        }
-    }();
-
-    const auto typeStr = [type]() {
-        switch (type) {
-        case GL_DEBUG_TYPE_ERROR: return "ERROR";
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED_BEHAVIOR";
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "UNDEFINED_BEHAVIOR";
-        case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
-        case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
-        case GL_DEBUG_TYPE_MARKER: return "MARKER";
-        case GL_DEBUG_TYPE_OTHER: return "OTHER";
-        default: return "";
-        }
-    }();
-
-    const auto severityStr = [severity]() {
-        switch (severity) {
-        case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFICATION";
-        case GL_DEBUG_SEVERITY_LOW: return "LOW";
-        case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
-        case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
-        default: return "";
-        }
-    }();
-    // clang-format on
-    std::cout << srcStr << ", " << typeStr << ", " << severityStr << ", " << id << ": " << message << '\n';
-}
-
-std::vector<Vertex> genHeightmap(int32_t w, int32_t h) {
-    constexpr int32_t gridSize = 200;
-    constexpr int32_t octaves = 12;
-    constexpr float lacunarity = 2;
-    constexpr float gain = 0.5;
-
-    std::vector<Vertex> heightmap;
-    heightmap.reserve(w * h);
-
-    for (int32_t z = 0; z < h; z++) {
-        for (int32_t x = 0; x < w; x++) {
-            float val = 0;
-            float freq = 1;
-            float amp = 1;
-
-            for (int32_t i = 0; i < octaves; i++) {
-                val += Noise::perlin(x * freq / gridSize, z * freq / gridSize) * amp;
-                freq *= lacunarity;
-                amp *= gain;
-            }
-
-            val = std::clamp(val * 1.2f, -1.0f, 1.0f);
-
-            float height = (((val + 1.0f) * 0.5f));
-            heightmap.emplace_back(Vertex{{x, height, z}, {0.0f, 0.0f}});
-        }
-    }
-
-    return heightmap;
-}
-
-std::vector<uint32_t> genHeightIndices(int32_t w, int32_t h) {
-    std::vector<uint32_t> indices;
-    indices.reserve((w - 1) * (h - 1) * 2 * 3);
-
-    for (int32_t j = 0; j < h - 1; j++) {
-        for (int32_t i = 0; i < w - 1; i++) {
-            int32_t tl = i + j * w;
-            int32_t tr = i + 1 + j * w;
-            int32_t bl = i + (j + 1) * w;
-            int32_t br = i + 1 + (j + 1) * w;
-
-            indices.push_back(tl);
-            indices.push_back(bl);
-            indices.push_back(tr);
-
-            indices.push_back(bl);
-            indices.push_back(br);
-            indices.push_back(tr);
-        }
-    }
-
-    return indices;
-}
 
 struct GlfwContext {
     GlfwContext() {
@@ -146,7 +43,7 @@ int main() {
     }
 
     glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(&debugCallback, nullptr);
+    glDebugMessageCallback(&Util::debugCallback, nullptr);
 
     const auto [w, h] = window.size();
     glViewport(0, 0, w, h);
@@ -162,52 +59,18 @@ int main() {
         return sstr.str();
     };
 
-    {
-        const uint32_t worldSize = 1024;
-    
-        const std::string compSource = readFile("res/shaders/terrain.comp");
-        const ShaderProgram compProgram({Shader(compSource, ShaderType::Compute)});
-        compProgram.bind();
-    
-        uint32_t verticesId = 0;
-        std::vector<Vertex> vertices;
-        vertices.resize(worldSize * worldSize);
-        glCreateBuffers(1, &verticesId);
-        glNamedBufferStorage(verticesId, worldSize * worldSize * sizeof(Vertex), vertices.data(), GL_DYNAMIC_STORAGE_BIT);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesId);
-    
-        glDispatchCompute(worldSize / 8, worldSize / 8, 1);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    
-        glGetNamedBufferSubData(verticesId, 0, worldSize * worldSize * sizeof(Vertex), vertices.data());
-    
-        std::cout << "\n";
-        for (int i = 0; i < 20; i++) {
-            std::cout << vertices[i].pos.y << " ";
-        }
-        std::cout << std::endl;
-        return 0;
-    }
-
-    const std::string vertSrc = readFile("res/shaders/shader.vert");
-    const std::string fragSrc = readFile("res/shaders/shader.frag");
-    const ShaderProgram program({
-        Shader(vertSrc, ShaderType::Vertex),
-        Shader(fragSrc, ShaderType::Fragment),
-    });
-
-    constexpr int32_t hWidth = 1024;
-    constexpr int32_t hHeight = 1024;
-    const auto vertices = genHeightmap(hWidth, hHeight);
-    const auto indices = genHeightIndices(hWidth, hHeight);
+    const std::string compSource = readFile("res/shaders/terrain.comp");
+    const ShaderProgram compProgram({Shader(compSource, ShaderType::Compute)});
 
     uint32_t vbo;
     glCreateBuffers(1, &vbo);
-    glNamedBufferData(vbo, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    glNamedBufferStorage(vbo, Terrain::getVertexBufferSize(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    Terrain::genHeightmapDevice(compProgram, vbo);
 
+    const auto indices = Terrain::genHeightIndicesHost();
     uint32_t ebo;
     glCreateBuffers(1, &ebo);
-    glNamedBufferData(ebo, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(ebo, Terrain::getIndexBufferSize(), indices.data(), GL_STATIC_DRAW);
 
     uint32_t vao;
     glCreateVertexArrays(1, &vao);
@@ -223,6 +86,13 @@ int main() {
 
     glVertexArrayAttribBinding(vao, 0, 0);
     glVertexArrayAttribBinding(vao, 1, 0);
+
+    const std::string vertSrc = readFile("res/shaders/shader.vert");
+    const std::string fragSrc = readFile("res/shaders/shader.frag");
+    const ShaderProgram program({
+        Shader(vertSrc, ShaderType::Vertex),
+        Shader(fragSrc, ShaderType::Fragment),
+    });
 
     // uint32_t texture;
     // glCreateTextures(GL_TEXTURE_2D, 1, &texture);
@@ -246,7 +116,7 @@ int main() {
     // stbi_image_free(data);
 
     glm::mat4 model(1.0f);
-    // model = glm::scale(model, glm::vec3(10.0f, 1.0f, 10.0f));
+    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
     const uint32_t modelLoc = glGetUniformLocation(program.getId(), "model");
@@ -276,7 +146,7 @@ int main() {
         cam.rotate(xOffset * sensitivity, -yOffset * sensitivity);
     };
 
-    const auto processKeyboard = [&window, &cam](double dt) {
+    const auto processKeyboard = [&](double dt) {
         float moveSpeed = 5.0f * dt;
         using D = Camera::Dir;
         const auto keyDown = std::bind(Input::isKeyDown, window.handle(), std::placeholders::_1);
@@ -303,6 +173,11 @@ int main() {
         if (keyDown(GLFW_KEY_LEFT_SHIFT)) {
             cam.move<D::Down>(moveSpeed);
         }
+
+        // if (keyDown(GLFW_KEY_P)) {
+        //     Terrain::genHeightmapDevice(compProgram, vbo);
+        //     std::cout << "done\n";
+        // }
     };
 
     double lastTime = 0;
@@ -323,13 +198,14 @@ int main() {
         }
 
         program.bind();
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vbo);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
 
         // glBindTextureUnit(0, texture);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window.handle());
         glfwPollEvents();
@@ -337,6 +213,6 @@ int main() {
 
     // glDeleteTextures(1, &texture);
     glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    // glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
 }

@@ -16,6 +16,7 @@ add_executable(poard2
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/shader_program.cpp
     ${SRC_DIR}/camera.cpp
+    ${SRC_DIR}/terrain_gen.cpp
 )
 
 target_include_directories(poard2 PRIVATE
