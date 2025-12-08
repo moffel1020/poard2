@@ -16,5 +16,5 @@ void main() {
     
     gl_Position = proj * view * model * vec4(vertPos, 1.0);
     position = aPos;
-    texCoord = aTexCoord;
+    texCoord = aPos.xz;
 }
