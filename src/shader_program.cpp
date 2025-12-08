@@ -10,7 +10,7 @@ ShaderProgram::ShaderProgram(std::initializer_list<Shader> shaders) {
     id = glCreateProgram();
 
     for (const auto& s : shaders) {
-        glAttachShader(id, s.getId());
+        glAttachShader(id, s.handle());
     }
 
     glLinkProgram(id);

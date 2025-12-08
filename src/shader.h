@@ -24,7 +24,7 @@ public:
         return *this;
     }
 
-    uint32_t getId() const { return id; }
+    uint32_t handle() const { return id; }
 
     ~Shader() {
         if (id != 0) {

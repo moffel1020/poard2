@@ -6,7 +6,6 @@
 #include "util.h"
 #include "window.h"
 
-
 #include <GLFW/glfw3.h>
 #include <fstream>
 #include <functional>
@@ -94,34 +93,36 @@ int main() {
         Shader(fragSrc, ShaderType::Fragment),
     });
 
-    // uint32_t texture;
-    // glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+    uint32_t rockTexture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &rockTexture);
 
-    // glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    // glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    // glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    // glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(rockTexture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(rockTexture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(rockTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(rockTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // int width, height, numChannels;
-    // uint8_t* data = stbi_load("res/textures/container.jpg", &width, &height, &numChannels, 0);
-    // if (!data) {
-    //     throw std::runtime_error("failed to load image from disk");
-    // }
+    int width, height, numChannels;
+    uint8_t* data = stbi_load("res/textures/rock.jpg", &width, &height, &numChannels, 0);
+    if (!data) {
+        throw std::runtime_error("failed to load image from disk");
+    }
 
-    // glTextureStorage2D(texture, 1, GL_RGB8, width, height);
-    // glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-    // glGenerateTextureMipmap(texture);
+    glTextureStorage2D(rockTexture, 1, GL_RGB8, width, height);
+    glTextureSubImage2D(rockTexture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateTextureMipmap(rockTexture);
 
-    // stbi_set_flip_vertically_on_load(true);
-    // stbi_image_free(data);
+    stbi_set_flip_vertically_on_load(true);
+    stbi_image_free(data);
 
     glm::mat4 model(1.0f);
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-    Camera cam(static_cast<float>(w) / static_cast<float>(h));
 
-    const uint32_t modelLoc = glGetUniformLocation(program.getId(), "model");
-    const uint32_t viewLoc = glGetUniformLocation(program.getId(), "view");
-    const uint32_t projLoc = glGetUniformLocation(program.getId(), "proj");
+    Camera cam(static_cast<float>(w) / static_cast<float>(h));
+    cam.setPosition({Terrain::chunkSize / 2, 400.0f, Terrain::chunkSize / 2});
+
+    const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
+    const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
+    const uint32_t projLoc = glGetUniformLocation(program.handle(), "proj");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -173,11 +174,6 @@ int main() {
         if (keyDown(GLFW_KEY_LEFT_SHIFT)) {
             cam.move<D::Down>(moveSpeed);
         }
-
-        // if (keyDown(GLFW_KEY_P)) {
-        //     Terrain::genHeightmapDevice(compProgram, vbo);
-        //     std::cout << "done\n";
-        // }
     };
 
     double lastTime = 0;
@@ -198,12 +194,11 @@ int main() {
         }
 
         program.bind();
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, vbo);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
 
-        // glBindTextureUnit(0, texture);
+        glBindTextureUnit(0, rockTexture);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
 
@@ -211,8 +206,8 @@ int main() {
         glfwPollEvents();
     }
 
-    // glDeleteTextures(1, &texture);
+    glDeleteTextures(1, &rockTexture);
     glDeleteVertexArrays(1, &vao);
-    // glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
 }
