@@ -1,4 +1,5 @@
 #pragma once
+#include "input.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
 #include <glad/gl.h>
@@ -20,15 +21,25 @@ public:
         return WindowSize{static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
     }
 
-private:
-    // static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {}
-    // static void mousePosCallback(GLFWwindow* window, double xpos, double ypos) {}
-    // static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {}
-    // static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {}
+    Input& getInput() { return input; }
 
+private:
     struct DeleteGlfwWindow {
         void operator()(GLFWwindow* w) { glfwDestroyWindow(w); }
     };
 
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        (void)scancode;
+        (void)mods;
+
+        const auto& win = *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+        win.input.keyCallback(key, action);
+    }
+
+    // static void mousePosCallback(GLFWwindow* window, double xpos, double ypos) {}
+    // static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {}
+    // static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {}
+
     std::unique_ptr<GLFWwindow, DeleteGlfwWindow> glfwWindow;
+    Input input;
 };

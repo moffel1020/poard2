@@ -17,6 +17,7 @@ add_executable(poard2
     ${SRC_DIR}/shader_program.cpp
     ${SRC_DIR}/camera.cpp
     ${SRC_DIR}/terrain_gen.cpp
+    ${SRC_DIR}/imgui_wrapper.cpp
 )
 
 target_include_directories(poard2 PRIVATE
@@ -40,4 +41,4 @@ add_warnings(poard2)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(cmake/deps.cmake)
 
-target_link_libraries(poard2 PRIVATE glfw glad glm::glm stb)
+target_link_libraries(poard2 PRIVATE glfw glad glm::glm stb imgui_glfw_ogl3)

@@ -2,8 +2,8 @@
 #include <stdexcept>
 
 Window::Window(uint32_t width, uint32_t height, const char* title)
-    : glfwWindow(glfwCreateWindow(width, height, title, nullptr, nullptr)) {
-    
+    : glfwWindow(glfwCreateWindow(width, height, title, nullptr, nullptr)), input(glfwWindow.get()) {
+
     if (!glfwWindow) {
         throw std::runtime_error("failed to create glfw window");
     }
@@ -11,7 +11,7 @@ Window::Window(uint32_t width, uint32_t height, const char* title)
     glfwSetWindowUserPointer(glfwWindow.get(), this);
     glfwMakeContextCurrent(glfwWindow.get());
     glfwSwapInterval(1);
-    // glfwSetKeyCallback(glfwWindow.get(), &Window::keyCallback);
+    glfwSetKeyCallback(glfwWindow.get(), &Window::keyCallback);
     // glfwSetCursorPosCallback(glfwWindow.get(), &Window::mousePosCallback);
     // glfwSetMouseButtonCallback(glfwWindow.get(), &Window::mouseButtonCallback);
     // glfwSetScrollCallback(glfwWindow.get(), &Window::scrollCallback);

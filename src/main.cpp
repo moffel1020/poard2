@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "imgui_wrapper.h"
 #include "input.h"
 #include "shader.h"
 #include "shader_program.h"
@@ -8,14 +9,15 @@
 
 #include <GLFW/glfw3.h>
 #include <fstream>
-#include <functional>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
 #include <iostream>
 #include <sstream>
 #include <stb_image.h>
+
 
 struct GlfwContext {
     GlfwContext() {
@@ -27,8 +29,10 @@ struct GlfwContext {
     ~GlfwContext() { glfwTerminate(); }
 };
 
+
 int main() {
     GlfwContext ctx;
+    bool enableGui = false;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
@@ -36,10 +40,22 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
     Window window(1280, 720, "poard2");
+    Input& input = window.getInput();
+
+    input.setCursorLock(true);
+    enableGui = false;
+
+    input.onKeyPressed(GLFW_KEY_P, [&]() {
+        const bool locked = input.isCursorLocked();
+        input.setCursorLock(!locked);
+        enableGui = locked;
+    });
 
     if (!gladLoadGL(static_cast<GLADloadfunc>(glfwGetProcAddress))) {
         throw std::runtime_error("failed to initialize glad");
     }
+
+    Gui::init(window.handle());
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(&Util::debugCallback, nullptr);
@@ -126,12 +142,17 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
-    const auto processMouse = [&window, &cam]() {
+    const auto processMouse = [&cam, &input]() {
         static double lastXPos = 0;
         static double lastYPos = 0;
         static bool firstMouse = true;
 
-        const auto [xPos, yPos] = Input::getMousePos(window.handle());
+        if (!input.isCursorLocked()) {
+            firstMouse = true;
+            return;
+        }
+
+        const auto [xPos, yPos] = input.getMousePos();
         if (firstMouse) {
             lastXPos = xPos;
             lastYPos = yPos;
@@ -147,31 +168,30 @@ int main() {
         cam.rotate(xOffset * sensitivity, -yOffset * sensitivity);
     };
 
-    const auto processKeyboard = [&](double dt) {
+    const auto processKeyboard = [&input, &cam](double dt) {
         float moveSpeed = 5.0f * dt;
         using D = Camera::Dir;
-        const auto keyDown = std::bind(Input::isKeyDown, window.handle(), std::placeholders::_1);
 
-        if (keyDown(GLFW_KEY_T)) {
+        if (input.isKeyDown(GLFW_KEY_T)) {
             moveSpeed = 500.0f * dt;
         }
 
-        if (keyDown(GLFW_KEY_W)) {
+        if (input.isKeyDown(GLFW_KEY_W)) {
             cam.move<D::Front>(moveSpeed);
         }
-        if (keyDown(GLFW_KEY_A)) {
+        if (input.isKeyDown(GLFW_KEY_A)) {
             cam.move<D::Left>(moveSpeed);
         }
-        if (keyDown(GLFW_KEY_S)) {
+        if (input.isKeyDown(GLFW_KEY_S)) {
             cam.move<D::Back>(moveSpeed);
         }
-        if (keyDown(GLFW_KEY_D)) {
+        if (input.isKeyDown(GLFW_KEY_D)) {
             cam.move<D::Right>(moveSpeed);
         }
-        if (keyDown(GLFW_KEY_SPACE)) {
+        if (input.isKeyDown(GLFW_KEY_SPACE)) {
             cam.move<D::Up>(moveSpeed);
         }
-        if (keyDown(GLFW_KEY_LEFT_SHIFT)) {
+        if (input.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
             cam.move<D::Down>(moveSpeed);
         }
     };
@@ -193,6 +213,12 @@ int main() {
             cam.update();
         }
 
+        Gui::startFrame();
+
+        if (enableGui) {
+            ImGui::ShowDemoWindow();
+        }
+
         program.bind();
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
@@ -202,9 +228,13 @@ int main() {
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
 
+        Gui::endFrame();
+
         glfwSwapBuffers(window.handle());
         glfwPollEvents();
     }
+
+    Gui::shutdown();
 
     glDeleteTextures(1, &rockTexture);
     glDeleteVertexArrays(1, &vao);
