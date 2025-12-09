@@ -7,11 +7,12 @@ layout(location = 0) out vec4 FragColor;
 
 layout(binding = 0) uniform sampler2D rockTexture;
 layout(location = 5) uniform vec3 camPos;
+layout(location = 6) uniform vec2 fogDistance;
 
 // Fog parameters, could make them uniforms and pass them into the fragment shader
 vec4 applyFog(in vec4 color) {
-    float maxDist = 2500.0;
-    float minDist = 700.0;
+    float maxDist = fogDistance.y;
+    float minDist = fogDistance.x;
     vec4  fogColor = vec4(0.9, 0.8, 0.7, 1.0);
 
     float dist = length(camPos - position);

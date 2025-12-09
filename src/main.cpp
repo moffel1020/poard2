@@ -207,9 +207,11 @@ int main() {
     const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
     const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
     const uint32_t projLoc = glGetUniformLocation(program.handle(), "proj");
-    const uint32_t scaleLoc = glGetUniformLocation(program.handle(), "heightScale");
-    const uint32_t powerLoc = glGetUniformLocation(program.handle(), "heightPower");
     const uint32_t camPosLoc = glGetUniformLocation(program.handle(), "camPos");
+
+    const uint32_t powerLoc = glGetUniformLocation(program.handle(), "heightPower");
+    const uint32_t fogDistanceLoc = glGetUniformLocation(program.handle(), "fogDistance");
+    const uint32_t scaleLoc = glGetUniformLocation(program.handle(), "heightScale");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -240,11 +242,11 @@ int main() {
     };
 
     const auto processKeyboard = [&input, &cam](double dt) {
-        float moveSpeed = 5.0f * dt;
+        float moveSpeed = 400.0f * dt;
         using D = Camera::Dir;
 
         if (input.isKeyDown(GLFW_KEY_T)) {
-            moveSpeed = 500.0f * dt;
+            moveSpeed = 1000.0f * dt;
         }
 
         if (input.isKeyDown(GLFW_KEY_W)) {
@@ -271,6 +273,7 @@ int main() {
 
     float heightScale = 200.0f;
     float heightPower = 1.0f;
+    glm::vec2 fogDistance(700.0f, 2500.0f);
 
     glfwSetInputMode(window.handle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -299,9 +302,11 @@ int main() {
             ImGui::Begin("Terrain settings");
             ImGui::Text("cam chunk x: %f z: %f", std::floor(camPos.x / TerrainGen::chunkSize),
                 std::floor(camPos.z / TerrainGen::chunkSize));
+
             ImGui::SeparatorText("Render settings");
             ImGui::DragFloat("scale", &heightScale);
             ImGui::DragFloat("power", &heightPower, 0.1f, 0.5f, 10.0f);
+            ImGui::DragFloat2("fog distance (min/max)", glm::value_ptr(fogDistance), 20.0f);
 
             ImGui::SeparatorText("Generation settings");
             if (ImGui::Button("reset")) {
@@ -326,6 +331,7 @@ int main() {
         program.bind();
         glUniform1f(scaleLoc, heightScale);
         glUniform1f(powerLoc, heightPower);
+        glUniform2f(fogDistanceLoc, fogDistance.x, fogDistance.y);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
