@@ -49,6 +49,12 @@ int main() {
         enableGui = locked;
     });
 
+    input.onKeyPressed(GLFW_KEY_P, [&]() {
+        static bool wireframe = false;
+        wireframe = !wireframe;
+        glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+    });
+
     if (!gladLoadGL(static_cast<GLADloadfunc>(glfwGetProcAddress))) {
         throw std::runtime_error("failed to initialize glad");
     }
@@ -77,13 +83,13 @@ int main() {
 
     uint32_t vbo;
     glCreateBuffers(1, &vbo);
-    glNamedBufferStorage(vbo, Terrain::getVertexBufferSize(), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    Terrain::genHeightmapDevice(compProgram, vbo);
+    glNamedBufferStorage(vbo, TerrainGen::getVertexBufferSize(), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    TerrainGen terrainGen;
 
-    const auto indices = Terrain::genHeightIndicesHost();
+    const auto indices = TerrainGen::genHeightIndicesHost();
     uint32_t ebo;
     glCreateBuffers(1, &ebo);
-    glNamedBufferData(ebo, Terrain::getIndexBufferSize(), indices.data(), GL_STATIC_DRAW);
+    glNamedBufferData(ebo, TerrainGen::getIndexBufferSize(), indices.data(), GL_STATIC_DRAW);
 
     uint32_t vao;
     glCreateVertexArrays(1, &vao);
@@ -172,24 +178,13 @@ int main() {
         stbi_image_free(data);
     }
 
-    const std::array skyboxVertices{// positions
-        -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
-        -1.0f,
-
-        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
-        -1.0f, 1.0f,
-
-        1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f,
-        -1.0f,
-
-        -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-        1.0f,
-
-        -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-        -1.0f,
-
-        -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-        -1.0f, 1.0f};
+    const std::array skyboxVertices{-1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+        1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
     uint32_t skyboxVbo;
     glCreateBuffers(1, &skyboxVbo);
@@ -206,7 +201,7 @@ int main() {
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
-    // cam.setPosition({Terrain::chunkSize / 2, 400.0f, Terrain::chunkSize / 2});
+    cam.setPosition({5000.0f, 400.0f, 5000.0f});
 
     const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
     const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
@@ -294,8 +289,15 @@ int main() {
 
         Gui::startFrame();
 
+        const auto camPos = cam.getPosition();
+        const glm::ivec2 chunkPos(
+            std::floor(camPos.x / TerrainGen::chunkSize), std::floor(camPos.z / TerrainGen::chunkSize));
+
         if (enableGui) {
+            const glm::vec3 camPos = cam.getPosition();
             ImGui::Begin("Terrain settings");
+            ImGui::Text("cam chunk x: %f z: %f", std::floor(camPos.x / TerrainGen::chunkSize),
+                std::floor(camPos.z / TerrainGen::chunkSize));
             ImGui::SeparatorText("Render settings");
             ImGui::DragFloat("scale", &heightScale);
             ImGui::DragFloat("power", &heightPower, 0.1f, 0.5f, 10.0f);
@@ -307,9 +309,14 @@ int main() {
             ImGui::DragInt("octaves", &placeholder1);
             ImGui::DragFloat("lacunarity", &placeholder2);
             ImGui::DragFloat("gain", &placeholder2);
-            ImGui::Button("generate");
+            if (ImGui::Button("generate")) {
+                terrainGen.clearChunkCache();
+                terrainGen.update(compProgram, vbo, chunkPos);
+            }
             ImGui::End();
         }
+
+        terrainGen.update(compProgram, vbo, chunkPos);
 
         program.bind();
         glUniform1f(scaleLoc, heightScale);
@@ -320,7 +327,10 @@ int main() {
         glUniform3fv(camPosLoc, 1, glm::value_ptr(cam.getPosition()));
         glBindTextureUnit(0, rockTexture);
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
+        for (uint32_t i = 0; i < terrainGen.chunkCount; i++) {
+            glDrawElementsBaseVertex(GL_TRIANGLES, TerrainGen::elemCount, GL_UNSIGNED_INT, 0,
+                TerrainGen::chunkSize * TerrainGen::chunkSize * i);
+        }
 
         glDepthFunc(GL_LEQUAL);
         skyboxProgram.bind();

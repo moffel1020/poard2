@@ -42,7 +42,7 @@ float cubicInterp(float a0, float a1, float w) {
 }
 
 float perlin(float x, float y) {
-    vec2 v0 = vec2(floor(x), floor(y));
+    vec2 v0 = vec2(floor(x + 0.01), floor(y + 0.01));
     vec2 v1 = vec2(v0.x + 1, v0.y + 1);
 
     float sx = x - v0.x;
@@ -80,13 +80,22 @@ float noise(int x, int z) {
     return height;
 }
 
-const uint chunkWidth = 4096;
+const int chunkWidth = 1024;
+
+layout(location = 0) uniform uint buffIdx;
+layout(location = 1) uniform ivec2 chunkIdx;
+layout(location = 2) uniform ivec2 centerIdx;
 
 void main() {
-    const uint x = gl_GlobalInvocationID.x;
-    const uint z = gl_GlobalInvocationID.y;
-    const float y = noise(int(x), int(z));
+    // sort of fix gaps in between chunks
+    int xDiff = chunkIdx.x - centerIdx.x;
+    int yDiff = chunkIdx.y - centerIdx.y;
+    
+    const int x = int(gl_GlobalInvocationID.x) + chunkIdx.x * chunkWidth - xDiff;
+    const int z = int(gl_GlobalInvocationID.y) + chunkIdx.y * chunkWidth - yDiff;
+    const float y = noise(x, z);
 
-    const uint idx = x + z * chunkWidth;
+    const uint buffOffset = buffIdx * chunkWidth * chunkWidth;
+    const uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * chunkWidth + buffOffset;
     vertices[idx] = Vertex(float[3](x, y, z), float[2](0.0, 0.0));
 }

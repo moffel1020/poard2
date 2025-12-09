@@ -24,7 +24,7 @@ target_include_directories(poard2 PRIVATE
     ${SRC_DIR}
 )
 
-target_compile_definitions(poard2 PRIVATE GLFW_INCLUDE_NONE)
+target_compile_definitions(poard2 PRIVATE GLFW_INCLUDE_NONE GLM_ENABLE_EXPERIMENTAL)
 
 function(add_warnings target)
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

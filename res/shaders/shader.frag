@@ -10,7 +10,7 @@ layout(location = 5) uniform vec3 camPos;
 
 // Fog parameters, could make them uniforms and pass them into the fragment shader
 vec4 applyFog(in vec4 color) {
-    float maxDist = 2000.0;
+    float maxDist = 2500.0;
     float minDist = 700.0;
     vec4  fogColor = vec4(0.9, 0.8, 0.7, 1.0);
 
@@ -24,7 +24,7 @@ vec4 applyFog(in vec4 color) {
 void main() {
     vec4 rockCol1 = texture(rockTexture, texCoord / 32);
     vec4 rockCol2 = texture(rockTexture, texCoord / 1024);
-    vec4 col = mix(rockCol1, rockCol2, 0.5);
+    vec4 col = mix(rockCol1, rockCol2, 0.7);
 
     col *= position.y;
     col = applyFog(col);

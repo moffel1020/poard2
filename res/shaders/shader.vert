@@ -17,8 +17,8 @@ void main() {
     vec3 vertPos = aPos;
     vertPos.y = pow(vertPos.y, heightPower);
     vertPos.y *= heightScale;
-    
-    gl_Position = proj * view * model * vec4(vertPos, 1.0);
+
+    gl_Position = proj * view * vec4(vertPos, 1.0);
     position = aPos;
     texCoord = aPos.xz;
 }
