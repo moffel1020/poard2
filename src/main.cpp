@@ -18,7 +18,6 @@
 #include <sstream>
 #include <stb_image.h>
 
-
 struct GlfwContext {
     GlfwContext() {
         if (!glfwInit()) {
@@ -28,7 +27,6 @@ struct GlfwContext {
 
     ~GlfwContext() { glfwTerminate(); }
 };
-
 
 int main() {
     GlfwContext ctx;
@@ -45,7 +43,7 @@ int main() {
     input.setCursorLock(true);
     enableGui = false;
 
-    input.onKeyPressed(GLFW_KEY_P, [&]() {
+    input.onKeyPressed(GLFW_KEY_E, [&]() {
         const bool locked = input.isCursorLocked();
         input.setCursorLock(!locked);
         enableGui = locked;
@@ -139,6 +137,8 @@ int main() {
     const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
     const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
     const uint32_t projLoc = glGetUniformLocation(program.handle(), "proj");
+    const uint32_t scaleLoc = glGetUniformLocation(program.handle(), "heightScale");
+    const uint32_t powerLoc = glGetUniformLocation(program.handle(), "heightPower");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -197,6 +197,10 @@ int main() {
     };
 
     double lastTime = 0;
+
+    float heightScale = 200.0f;
+    float heightPower = 1.0f;
+
     glfwSetInputMode(window.handle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     while (!glfwWindowShouldClose(window.handle())) {
@@ -215,11 +219,27 @@ int main() {
 
         Gui::startFrame();
 
+
         if (enableGui) {
-            ImGui::ShowDemoWindow();
+            ImGui::Begin("Terrain settings");
+            ImGui::SeparatorText("Render settings");
+            ImGui::DragFloat("scale", &heightScale);
+            ImGui::DragFloat("power", &heightPower, 0.1f, 0.5f, 10.0f);
+
+            ImGui::SeparatorText("Generation settings");
+            int placeholder1 = 3;
+            float placeholder2 = 20.0;
+            ImGui::DragInt("grid size", &placeholder1);
+            ImGui::DragInt("octaves", &placeholder1);
+            ImGui::DragFloat("lacunarity", &placeholder2);
+            ImGui::DragFloat("gain", &placeholder2);
+            ImGui::Button("generate");
+            ImGui::End();
         }
 
         program.bind();
+        glUniform1f(scaleLoc, heightScale);
+        glUniform1f(powerLoc, heightPower);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
