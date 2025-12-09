@@ -12,6 +12,15 @@ layout(std430, binding = 0) writeonly buffer ssbo1 {
     Vertex vertices[];
 };
 
+layout(location = 0) uniform uint buffIdx;
+layout(location = 1) uniform ivec2 chunkIdx;
+layout(location = 2) uniform ivec2 centerIdx;
+
+layout(location = 3) uniform uint gridSize;
+layout(location = 4) uniform uint octaves;
+layout(location = 5) uniform float lacunarity;
+layout(location = 6) uniform float gain;
+
 vec2 hash(float ix, float iy) {
     const uint w = 32;
     const uint s = w / 2;
@@ -60,10 +69,10 @@ float perlin(float x, float y) {
 }
 
 float noise(int x, int z) {
-    const uint gridSize = 200;
-    const uint octaves = 12;
-    const float lacunarity = 2;
-    const float gain = 0.5;
+    // const uint gridSize = 200;
+    // const uint octaves = 12;
+    // const float lacunarity = 2;
+    // const float gain = 0.5;
 
     float val = 0;
     float freq = 1;
@@ -81,10 +90,6 @@ float noise(int x, int z) {
 }
 
 const int chunkWidth = 1024;
-
-layout(location = 0) uniform uint buffIdx;
-layout(location = 1) uniform ivec2 chunkIdx;
-layout(location = 2) uniform ivec2 centerIdx;
 
 void main() {
     // sort of fix gaps in between chunks

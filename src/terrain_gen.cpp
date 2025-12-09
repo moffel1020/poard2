@@ -4,6 +4,10 @@ void TerrainGen::genChunk(
     const ShaderProgram& terrainShader, uint32_t vertexId, glm::ivec2 chunkIdx, uint32_t buffIdx) const {
 
     terrainShader.bind();
+    glUniform1ui(glGetUniformLocation(terrainShader.handle(), "gridSize"), config.gridSize);
+    glUniform1ui(glGetUniformLocation(terrainShader.handle(), "octaves"), config.octaves);
+    glUniform1f(glGetUniformLocation(terrainShader.handle(), "lacunarity"), config.lacunarity);
+    glUniform1f(glGetUniformLocation(terrainShader.handle(), "gain"), config.gain);
     glUniform2i(glGetUniformLocation(terrainShader.handle(), "chunkIdx"), chunkIdx.x, chunkIdx.y);
     glUniform2i(glGetUniformLocation(terrainShader.handle(), "centerIdx"), currentCenter.x, currentCenter.y);
     glUniform1ui(glGetUniformLocation(terrainShader.handle(), "buffIdx"), buffIdx);

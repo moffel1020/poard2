@@ -1,8 +1,8 @@
 #pragma once
 #include "shader_program.h"
-#include <imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
+#include <imgui.h>
 #include <noise.h>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,6 +14,13 @@ struct Vertex {
     glm::vec2 texCoord;
 };
 
+struct GenConfig {
+    uint32_t gridSize = 200;
+    uint32_t octaves = 12;
+    float lacunarity = 2;
+    float gain = 0.5;
+};
+
 class TerrainGen {
 public:
     static constexpr uint32_t chunkSize = 1024;                                    // width and height of the chunk
@@ -23,7 +30,6 @@ public:
     static constexpr uint32_t chunkCount = 41; // with manhattan distance 4
     static constexpr uint32_t chunkDistance = 4;
 
-
     static constexpr size_t getVertexBufferSize() { return chunkSize * chunkSize * sizeof(Vertex) * chunkCount; }
     static constexpr size_t getIndexBufferSize() { return elemCount * sizeof(uint32_t); }
 
@@ -31,14 +37,15 @@ public:
 
     void update(const ShaderProgram& terrainShader, uint32_t vertexId, glm::ivec2 center);
 
-    void clearChunkCache() {
-        allocatedChunks.clear();
-    }
+    void setConfig(const GenConfig& config) { this->config = config; }
+
+    void clearChunkCache() { allocatedChunks.clear(); }
 
 private:
     std::unordered_set<glm::ivec2> getChunksInRange(glm::ivec2 center) const;
     void genChunk(const ShaderProgram& terrainShader, uint32_t vertexId, glm::ivec2 chunkIdx, uint32_t buffIdx) const;
 
+    GenConfig config;
     glm::ivec2 currentCenter;
     std::unordered_map<glm::ivec2, uint32_t> allocatedChunks;
 };

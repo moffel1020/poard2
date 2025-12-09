@@ -85,6 +85,7 @@ int main() {
     glCreateBuffers(1, &vbo);
     glNamedBufferStorage(vbo, TerrainGen::getVertexBufferSize(), nullptr, GL_DYNAMIC_STORAGE_BIT);
     TerrainGen terrainGen;
+    GenConfig genConfig{};
 
     const auto indices = TerrainGen::genHeightIndicesHost();
     uint32_t ebo;
@@ -303,14 +304,18 @@ int main() {
             ImGui::DragFloat("power", &heightPower, 0.1f, 0.5f, 10.0f);
 
             ImGui::SeparatorText("Generation settings");
-            int placeholder1 = 3;
-            float placeholder2 = 20.0;
-            ImGui::DragInt("grid size", &placeholder1);
-            ImGui::DragInt("octaves", &placeholder1);
-            ImGui::DragFloat("lacunarity", &placeholder2);
-            ImGui::DragFloat("gain", &placeholder2);
+            if (ImGui::Button("reset")) {
+                genConfig = GenConfig{};
+            }
+
+            ImGui::DragInt("grid size", reinterpret_cast<int*>(&genConfig.gridSize), 5.0f, 0, 100000.0f);
+            ImGui::DragInt("octaves", reinterpret_cast<int*>(&genConfig.octaves), 0.5, 0.0f, 150.0f);
+            ImGui::DragFloat("lacunarity", &genConfig.lacunarity, 0.05f);
+            ImGui::DragFloat("gain", &genConfig.gain, 0.05f);
+
             if (ImGui::Button("generate")) {
                 terrainGen.clearChunkCache();
+                terrainGen.setConfig(genConfig);
                 terrainGen.update(compProgram, vbo, chunkPos);
             }
             ImGui::End();
