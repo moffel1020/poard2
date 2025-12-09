@@ -6,6 +6,20 @@ layout(location = 1) in vec2 texCoord;
 layout(location = 0) out vec4 FragColor;
 
 layout(binding = 0) uniform sampler2D rockTexture;
+layout(location = 5) uniform vec3 camPos;
+
+// Fog parameters, could make them uniforms and pass them into the fragment shader
+vec4 applyFog(in vec4 color) {
+    float maxDist = 2000.0;
+    float minDist = 700.0;
+    vec4  fogColor = vec4(0.9, 0.8, 0.7, 1.0);
+
+    float dist = length(camPos - position);
+    float factor = (maxDist - dist) / (maxDist - minDist);
+    factor = clamp(factor, 0.0, 1.0);
+
+    return mix(fogColor, color, factor);
+}
 
 void main() {
     vec4 rockCol1 = texture(rockTexture, texCoord / 32);
@@ -13,27 +27,7 @@ void main() {
     vec4 col = mix(rockCol1, rockCol2, 0.5);
 
     col *= position.y;
+    col = applyFog(col);
 
     FragColor = col;
-
-    // vec3 col = position;
-    // float v = col.y;
-    // FragColor = vec4(v, v, v, 1.0);
-
-    // if (v < 0.35) {
-    //     // water
-    //     col.rgb = vec3(0.1, 0.1, 0.7);
-    // } else if (v < 0.45) {
-    //     // beach
-    //     col.rgb = vec3(0.98, 0.92, 0.47);
-    // } else if (v < 0.65) {
-    //     // grass
-    //     col.rgb = vec3(0.33, 0.8, 0.32);
-    // } else {
-    //     // stone
-    //     col.rgb = vec3(0.33, 0.33, 0.33);
-    // }
-    // col *= (1.0 - v);
-    // FragColor = vec4(col, 1.0);
-
 }

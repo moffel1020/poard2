@@ -25,6 +25,7 @@ public:
     void update();
     void rotate(float yawDiff, float pitchDiff);
     void setPosition(glm::vec3 pos) { position = pos; }
+    glm::vec3 getPosition() const { return position; }
 
     void setAspect(float width, float height) { proj = glm::perspective(fov, width / height, zNear, zFar); }
     const glm::mat4& getView() const { return view; }

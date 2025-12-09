@@ -203,7 +203,7 @@ int main() {
     glVertexArrayAttribBinding(skyboxVao, 0, 0);
 
     glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(2.0f, 1.0f, 2.0f));
+    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
     // cam.setPosition({Terrain::chunkSize / 2, 400.0f, Terrain::chunkSize / 2});
@@ -213,6 +213,7 @@ int main() {
     const uint32_t projLoc = glGetUniformLocation(program.handle(), "proj");
     const uint32_t scaleLoc = glGetUniformLocation(program.handle(), "heightScale");
     const uint32_t powerLoc = glGetUniformLocation(program.handle(), "heightPower");
+    const uint32_t camPosLoc = glGetUniformLocation(program.handle(), "camPos");
 
     glEnable(GL_DEPTH_TEST);
 
@@ -316,7 +317,7 @@ int main() {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(cam.getView()));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
-
+        glUniform3fv(camPosLoc, 1, glm::value_ptr(cam.getPosition()));
         glBindTextureUnit(0, rockTexture);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
