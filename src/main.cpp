@@ -8,6 +8,7 @@
 #include "window.h"
 
 #include <GLFW/glfw3.h>
+#include <array>
 #include <fstream>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -30,7 +31,6 @@ struct GlfwContext {
 
 int main() {
     GlfwContext ctx;
-    bool enableGui = false;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
@@ -40,12 +40,12 @@ int main() {
     Window window(1280, 720, "poard2");
     Input& input = window.getInput();
 
-    input.setCursorLock(true);
-    enableGui = false;
+    input.lockCursor(true);
+    bool enableGui = false;
 
     input.onKeyPressed(GLFW_KEY_E, [&]() {
         const bool locked = input.isCursorLocked();
-        input.setCursorLock(!locked);
+        input.lockCursor(!locked);
         enableGui = locked;
     });
 
@@ -107,6 +107,13 @@ int main() {
         Shader(fragSrc, ShaderType::Fragment),
     });
 
+    const std::string skyboxVertSrc = readFile("res/shaders/skybox.vert");
+    const std::string skyboxFragSrc = readFile("res/shaders/skybox.frag");
+    const ShaderProgram skyboxProgram({
+        Shader(skyboxVertSrc, ShaderType::Vertex),
+        Shader(skyboxFragSrc, ShaderType::Fragment),
+    });
+
     uint32_t rockTexture;
     glCreateTextures(GL_TEXTURE_2D, 1, &rockTexture);
 
@@ -116,6 +123,7 @@ int main() {
     glTextureParameteri(rockTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     int width, height, numChannels;
+    stbi_set_flip_vertically_on_load(true);
     uint8_t* data = stbi_load("res/textures/rock.jpg", &width, &height, &numChannels, 0);
     if (!data) {
         throw std::runtime_error("failed to load image from disk");
@@ -125,14 +133,80 @@ int main() {
     glTextureSubImage2D(rockTexture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateTextureMipmap(rockTexture);
 
-    stbi_set_flip_vertically_on_load(true);
     stbi_image_free(data);
 
+    uint32_t skyboxTexture;
+    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &skyboxTexture);
+    glTextureStorage2D(skyboxTexture, 1, GL_RGBA8, 512, 512);
+
+    glTextureParameteri(skyboxTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(skyboxTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(skyboxTexture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    const std::string skyboxPath = "res/textures/skybox/";
+    const std::vector<std::string> faces{
+        skyboxPath + "px.png",
+        skyboxPath + "nx.png",
+        skyboxPath + "py.png",
+        skyboxPath + "ny.png",
+        skyboxPath + "pz.png",
+        skyboxPath + "nz.png",
+    };
+
+    stbi_set_flip_vertically_on_load(false);
+    for (int face = 0; face < 6; ++face) {
+        int width, height, numChannels;
+        uint8_t* data = stbi_load(faces[face].c_str(), &width, &height, &numChannels, 0);
+        if (!data) {
+            throw std::runtime_error("could not load cubemap face " + faces[face]);
+        }
+
+        glTextureSubImage3D(skyboxTexture,
+            0, // only 1 level in example
+            0, 0,
+            face, // the offset to desired cubemap face, which offset goes to which face above
+            width, height,
+            1, // depth how many faces to set, if this was 3 we'd set 3 cubemap faces at once
+            GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        stbi_image_free(data);
+    }
+
+    const std::array skyboxVertices{// positions
+        -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+        -1.0f,
+
+        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
+        -1.0f, 1.0f,
+
+        1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f,
+        -1.0f,
+
+        -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
+        1.0f,
+
+        -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
+        -1.0f,
+
+        -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f};
+
+    uint32_t skyboxVbo;
+    glCreateBuffers(1, &skyboxVbo);
+    glNamedBufferStorage(skyboxVbo, sizeof(skyboxVertices), skyboxVertices.data(), GL_DYNAMIC_STORAGE_BIT);
+
+    uint32_t skyboxVao;
+    glCreateVertexArrays(1, &skyboxVao);
+    glVertexArrayVertexBuffer(skyboxVao, 0, skyboxVbo, 0, sizeof(float) * 3);
+    glEnableVertexArrayAttrib(skyboxVao, 0);
+    glVertexArrayAttribFormat(skyboxVao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribBinding(skyboxVao, 0, 0);
+
     glm::mat4 model(1.0f);
-    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+    model = glm::scale(model, glm::vec3(2.0f, 1.0f, 2.0f));
 
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
-    cam.setPosition({Terrain::chunkSize / 2, 400.0f, Terrain::chunkSize / 2});
+    // cam.setPosition({Terrain::chunkSize / 2, 400.0f, Terrain::chunkSize / 2});
 
     const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
     const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
@@ -202,7 +276,7 @@ int main() {
     float heightPower = 1.0f;
 
     glfwSetInputMode(window.handle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     while (!glfwWindowShouldClose(window.handle())) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -218,7 +292,6 @@ int main() {
         }
 
         Gui::startFrame();
-
 
         if (enableGui) {
             ImGui::Begin("Terrain settings");
@@ -247,6 +320,16 @@ int main() {
         glBindTextureUnit(0, rockTexture);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, Terrain::elemCount, GL_UNSIGNED_INT, 0);
+
+        glDepthFunc(GL_LEQUAL);
+        skyboxProgram.bind();
+        const glm::mat4 view2 = glm::mat4(glm::mat3(cam.getView()));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view2));
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
+        glBindTextureUnit(1, skyboxTexture);
+        glBindVertexArray(skyboxVao);
+        glDrawArrays(GL_TRIANGLES, 0, skyboxVertices.size());
+        glDepthFunc(GL_LESS);
 
         Gui::endFrame();
 

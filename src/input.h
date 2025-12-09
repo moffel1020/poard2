@@ -27,7 +27,7 @@ public:
 
     bool isCursorLocked() { return glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED; }
 
-    void setCursorLock(bool locked) {
+    void lockCursor(bool locked) {
         if (locked) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         } else {
