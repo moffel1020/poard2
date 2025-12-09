@@ -15,7 +15,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-#include <iostream>
 #include <sstream>
 #include <stb_image.h>
 
@@ -139,6 +138,25 @@ int main() {
     glTextureStorage2D(rockTexture, 1, GL_RGB8, width, height);
     glTextureSubImage2D(rockTexture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateTextureMipmap(rockTexture);
+
+    uint32_t grassTexture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &grassTexture);
+
+    glTextureParameteri(grassTexture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(grassTexture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(grassTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(grassTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // int width, height, numChannels;
+    stbi_set_flip_vertically_on_load(true);
+    data = stbi_load("res/textures/grass3.jpg", &width, &height, &numChannels, 0);
+    if (!data) {
+        throw std::runtime_error("failed to load image from disk");
+    }
+
+    glTextureStorage2D(grassTexture, 1, GL_RGB8, width, height);
+    glTextureSubImage2D(grassTexture, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateTextureMipmap(grassTexture);
 
     stbi_image_free(data);
 
@@ -337,6 +355,7 @@ int main() {
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(cam.getProj()));
         glUniform3fv(camPosLoc, 1, glm::value_ptr(cam.getPosition()));
         glBindTextureUnit(0, rockTexture);
+        glBindTextureUnit(1, grassTexture);
         glBindVertexArray(vao);
         for (uint32_t i = 0; i < terrainGen.chunkCount; i++) {
             glDrawElementsBaseVertex(GL_TRIANGLES, TerrainGen::elemCount, GL_UNSIGNED_INT, 0,

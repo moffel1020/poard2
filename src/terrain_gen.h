@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 #include <imgui.h>
-#include <noise.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

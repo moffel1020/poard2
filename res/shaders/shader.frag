@@ -6,6 +6,8 @@ layout(location = 1) in vec2 texCoord;
 layout(location = 0) out vec4 FragColor;
 
 layout(binding = 0) uniform sampler2D rockTexture;
+layout(binding = 1) uniform sampler2D grassTexture;
+
 layout(location = 5) uniform vec3 camPos;
 layout(location = 6) uniform vec2 fogDistance;
 
@@ -23,9 +25,9 @@ vec4 applyFog(in vec4 color) {
 }
 
 void main() {
-    vec4 rockCol1 = texture(rockTexture, texCoord / 32);
-    vec4 rockCol2 = texture(rockTexture, texCoord / 1024);
-    vec4 col = mix(rockCol1, rockCol2, 0.7);
+    vec4 grassCol = texture(grassTexture, texCoord / 1024);
+    vec4 rockCol = texture(rockTexture, texCoord / 512);
+    vec4 col = mix(grassCol, rockCol, 1 - position.y);
 
     col *= position.y;
     col = applyFog(col);
