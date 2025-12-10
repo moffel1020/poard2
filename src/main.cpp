@@ -18,6 +18,7 @@
 #include <sstream>
 #include <stb_image.h>
 
+// needed so the glfw context doesnt get destroyed before the opengl resources are freed
 struct GlfwContext {
     GlfwContext() {
         if (!glfwInit()) {
@@ -179,17 +180,11 @@ int main() {
             throw std::runtime_error("could not load cubemap face " + faces[face]);
         }
 
-        glTextureSubImage3D(skyboxTexture,
-            0, // only 1 level in example
-            0, 0,
-            face, // the offset to desired cubemap face, which offset goes to which face above
-            width, height,
-            1, // depth how many faces to set, if this was 3 we'd set 3 cubemap faces at once
-            GL_RGBA, GL_UNSIGNED_BYTE, data);
-
+        glTextureSubImage3D(skyboxTexture, 0, 0, 0, face, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     }
 
+    // cube vertices
     const std::array skyboxVertices{-1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
         1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
         -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
@@ -375,7 +370,9 @@ int main() {
 
     glDeleteTextures(1, &rockTexture);
     glDeleteTextures(1, &grassTexture);
+    glDeleteVertexArrays(1, &skyboxVao);
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &skyboxVbo);
     glDeleteBuffers(1, &ebo);
 }
