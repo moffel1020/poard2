@@ -40,7 +40,7 @@ vec2 hash(float ix, float iy) {
     return vec2(sin(random), cos(random));
 }
 
-float dotGridGradient(float ix, float iy, float x, float y) {
+float dotGradient(float ix, float iy, float x, float y) {
     vec2 gradient = hash(ix, iy);
     vec2 dist = vec2(x - ix, y - iy);
     return dot(dist, gradient);
@@ -51,18 +51,18 @@ float cubicInterp(float a0, float a1, float w) {
 }
 
 float perlin(float x, float y) {
-    vec2 v0 = vec2(floor(x + 0.01), floor(y + 0.01));
+    vec2 v0 = vec2(floor(x), floor(y));
     vec2 v1 = vec2(v0.x + 1, v0.y + 1);
 
     float sx = x - v0.x;
     float sy = y - v0.y;
 
-    float n0 = dotGridGradient(v0.x, v0.y, x, y);
-    float n1 = dotGridGradient(v1.x, v0.y, x, y);
+    float n0 = dotGradient(v0.x, v0.y, x, y);
+    float n1 = dotGradient(v1.x, v0.y, x, y);
     float ix0 = cubicInterp(n0, n1, sx);
 
-    n0 = dotGridGradient(v0.x, v1.y, x, y);
-    n1 = dotGridGradient(v1.x, v1.y, x, y);
+    n0 = dotGradient(v0.x, v1.y, x, y);
+    n1 = dotGradient(v1.x, v1.y, x, y);
     float ix1 = cubicInterp(n0, n1, sx);
 
     return cubicInterp(ix0, ix1, sy);
@@ -87,13 +87,12 @@ float noise(int x, int z) {
 const int chunkWidth = 1024;
 
 void main() {
-    // sort of fix gaps in between chunks
     int xDiff = chunkIdx.x - centerIdx.x;
     int yDiff = chunkIdx.y - centerIdx.y;
     
-    const int x = int(gl_GlobalInvocationID.x) + chunkIdx.x * chunkWidth - xDiff;
-    const int z = int(gl_GlobalInvocationID.y) + chunkIdx.y * chunkWidth - yDiff;
-    const float y = noise(x, z);
+    const float x = gl_GlobalInvocationID.x * (1025.0 / 1024.0) + chunkIdx.x * chunkWidth - xDiff;
+    const float z = gl_GlobalInvocationID.y * (1025.0 / 1024.0) + chunkIdx.y * chunkWidth - yDiff;
+    const float y = noise(int(x), int(z));
 
     const uint buffOffset = buffIdx * chunkWidth * chunkWidth;
     const uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * chunkWidth + buffOffset;

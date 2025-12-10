@@ -220,7 +220,7 @@ int main() {
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
     Camera cam(static_cast<float>(w) / static_cast<float>(h));
-    cam.setPosition({5000.0f, 400.0f, 5000.0f});
+    cam.setPosition({200000.0f, 400.0f, 200000.0f});
 
     const uint32_t modelLoc = glGetUniformLocation(program.handle(), "model");
     const uint32_t viewLoc = glGetUniformLocation(program.handle(), "view");
