@@ -49,7 +49,7 @@ void TerrainGen::update(const ShaderProgram& terrainShader, uint32_t vertexId, g
             allocatedChunks.insert(std::make_pair(toAlloc[i], idx));
         }
     } else {
-        assert(toAlloc.size() == chunkCount);
+        assert(toAlloc.size() == goodChunks.size());
         for (uint32_t i = 0; i < toAlloc.size(); i++) {
             const auto& chunk = toAlloc[i];
             genChunk(terrainShader, vertexId, chunk, i);
@@ -58,12 +58,28 @@ void TerrainGen::update(const ShaderProgram& terrainShader, uint32_t vertexId, g
     }
 }
 
+uint32_t TerrainGen::getChunkCount() {
+    constexpr int32_t R = chunkDistance;
+    glm::ivec2 center(0, 0);
+    uint32_t total = 0;
+
+    std::unordered_set<glm::ivec2> points;
+    for (int32_t x = center.x - R; x <= center.x + R; x++) {
+        int32_t yRange = R - std::abs(x - center.x);
+        for (int32_t y = center.y - yRange; y <= center.y + yRange; ++y) {
+            total++;
+        }
+    }
+
+    return total;
+}
+
 std::unordered_set<glm::ivec2> TerrainGen::getChunksInRange(glm::ivec2 center) const {
     constexpr int32_t R = chunkDistance;
 
     std::unordered_set<glm::ivec2> points;
     for (int32_t x = center.x - R; x <= center.x + R; x++) {
-        int32_t yRange = R - abs(x - center.x);
+        int32_t yRange = R - std::abs(x - center.x);
         for (int32_t y = center.y - yRange; y <= center.y + yRange; ++y) {
             points.insert(glm::ivec2(x, y));
         }

@@ -25,10 +25,11 @@ public:
     static constexpr size_t elemCount = (chunkSize - 1) * (chunkSize - 1) * 2 * 3; // index buffer count
     static_assert(chunkSize % 8 == 0, "chunk size must be divisible by 8. keep in sync with layout in compute shader");
 
-    static constexpr uint32_t chunkCount = 41; // with manhattan distance 4
+    // static constexpr uint32_t chunkCount = 41; // with manhattan distance 4
     static constexpr uint32_t chunkDistance = 4;
 
-    static constexpr size_t getVertexBufferSize() { return chunkSize * chunkSize * sizeof(Vertex) * chunkCount; }
+    static uint32_t getChunkCount();
+    static size_t getVertexBufferSize() { return chunkSize * chunkSize * sizeof(Vertex) * getChunkCount(); }
     static constexpr size_t getIndexBufferSize() { return elemCount * sizeof(uint32_t); }
 
     static std::vector<uint32_t> genHeightIndices();

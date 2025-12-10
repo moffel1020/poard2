@@ -275,6 +275,8 @@ int main() {
         }
     };
 
+    const uint32_t chunkCount = terrainGen.getChunkCount();
+
     double lastTime = 0;
 
     float heightScale = 200.0f;
@@ -345,7 +347,7 @@ int main() {
         glBindTextureUnit(0, rockTexture);
         glBindTextureUnit(1, grassTexture);
         glBindVertexArray(vao);
-        for (uint32_t i = 0; i < terrainGen.chunkCount; i++) {
+        for (uint32_t i = 0; i < chunkCount; i++) {
             glDrawElementsBaseVertex(GL_TRIANGLES, TerrainGen::elemCount, GL_UNSIGNED_INT, 0,
                 TerrainGen::chunkSize * TerrainGen::chunkSize * i);
         }
