@@ -86,25 +86,18 @@ int main() {
     TerrainGen terrainGen;
     GenConfig genConfig{};
 
-    const auto indices = TerrainGen::genHeightIndicesHost();
+    const auto indices = TerrainGen::genHeightIndices();
     uint32_t ebo;
     glCreateBuffers(1, &ebo);
     glNamedBufferData(ebo, TerrainGen::getIndexBufferSize(), indices.data(), GL_STATIC_DRAW);
 
     uint32_t vao;
     glCreateVertexArrays(1, &vao);
-
     glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(Vertex));
     glVertexArrayElementBuffer(vao, ebo);
-
     glEnableVertexArrayAttrib(vao, 0);
-    glEnableVertexArrayAttrib(vao, 1);
-
     glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoord));
-
     glVertexArrayAttribBinding(vao, 0, 0);
-    glVertexArrayAttribBinding(vao, 1, 0);
 
     const std::string vertSrc = readFile("res/shaders/shader.vert");
     const std::string fragSrc = readFile("res/shaders/shader.frag");
@@ -381,6 +374,7 @@ int main() {
     Gui::shutdown();
 
     glDeleteTextures(1, &rockTexture);
+    glDeleteTextures(1, &grassTexture);
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);

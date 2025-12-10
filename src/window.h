@@ -36,10 +36,6 @@ private:
         win.input.keyCallback(key, action);
     }
 
-    // static void mousePosCallback(GLFWwindow* window, double xpos, double ypos) {}
-    // static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {}
-    // static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {}
-
     std::unique_ptr<GLFWwindow, DeleteGlfwWindow> glfwWindow;
     Input input;
 };

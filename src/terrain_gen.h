@@ -10,7 +10,6 @@
 // sync with terrain.comp
 struct Vertex {
     glm::vec3 pos;
-    glm::vec2 texCoord;
 };
 
 struct GenConfig {
@@ -32,7 +31,7 @@ public:
     static constexpr size_t getVertexBufferSize() { return chunkSize * chunkSize * sizeof(Vertex) * chunkCount; }
     static constexpr size_t getIndexBufferSize() { return elemCount * sizeof(uint32_t); }
 
-    static std::vector<uint32_t> genHeightIndicesHost();
+    static std::vector<uint32_t> genHeightIndices();
 
     void update(const ShaderProgram& terrainShader, uint32_t vertexId, glm::ivec2 center);
 

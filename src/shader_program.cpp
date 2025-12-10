@@ -19,8 +19,7 @@ ShaderProgram::ShaderProgram(std::initializer_list<Shader> shaders) {
     glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(id, linkInfo.size(), nullptr, linkInfo.data());
-        std::cout << "ERROR: shaders failed to link\n" << linkInfo.data() << std::endl;
-        // TODO: throw error or something?
+        std::cerr << "ERROR: shaders failed to link\n" << linkInfo.data() << std::endl;
     }
 
     glValidateProgram(id);

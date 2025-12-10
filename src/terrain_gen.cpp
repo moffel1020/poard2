@@ -72,7 +72,7 @@ std::unordered_set<glm::ivec2> TerrainGen::getChunksInRange(glm::ivec2 center) c
     return points;
 }
 
-std::vector<uint32_t> TerrainGen::genHeightIndicesHost() {
+std::vector<uint32_t> TerrainGen::genHeightIndices() {
     constexpr uint32_t w = chunkSize;
     constexpr uint32_t h = chunkSize;
 

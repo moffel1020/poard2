@@ -14,7 +14,7 @@ Shader::Shader(const std::string& source, ShaderType type) {
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(id, compileInfo.size(), nullptr, compileInfo.data());
-        std::cout << "ERROR: shader compilation of type " << static_cast<GLenum>(type) << " failed\n"
+        std::cerr << "ERROR: shader compilation of type " << static_cast<GLenum>(type) << " failed\n"
                   << compileInfo.data() << std::endl;
     }
 }
